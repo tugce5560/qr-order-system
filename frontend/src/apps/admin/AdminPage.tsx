@@ -10,7 +10,6 @@ import {
 } from "../../services/orderHub";
 import type { OrderEventPayload } from "../../services/orderHub";
 import { clearAuth } from "../../services/auth";
-import { isDemoAuthBypassEnabled } from "../../services/demoAuth";
 import "./AdminPage.css";
 
 type Category = {
@@ -630,9 +629,7 @@ function AdminPage() {
 
   function logout() {
     clearAuth();
-    if (!isDemoAuthBypassEnabled()) {
-      navigate("/login");
-    }
+    navigate("/admin");
   }
 
   async function saveTheme(event: FormEvent<HTMLFormElement>) {

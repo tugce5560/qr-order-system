@@ -10,7 +10,6 @@ import type {
   OrderEventPayload,
   ServiceRequestPayload,
 } from "../../services/orderHub";
-import { getAuthToken } from "../../services/auth";
 import "./WaiterPage.css";
 
 type WaiterTable = {
@@ -85,11 +84,10 @@ type EditOrderItem = {
 };
 
 function WaiterPage() {
-  const isAuthenticated = Boolean(getAuthToken());
   const [tables, setTables] = useState<WaiterTable[]>([]);
   const [orders, setOrders] = useState<WaiterOrder[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus>("New");
-  const [isLoading, setIsLoading] = useState(isAuthenticated);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
   const [selectedBillOrder, setSelectedBillOrder] = useState<WaiterOrder | null>(
@@ -169,22 +167,14 @@ function WaiterPage() {
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      return;
-    }
-
     const timeoutId = window.setTimeout(() => {
       void fetchWaiterData();
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [fetchWaiterData, isAuthenticated]);
+  }, [fetchWaiterData]);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      return;
-    }
-
     startOrderHubConnection();
 
     const unsubscribeOrderCreated = onOrderCreated(mergeRealtimeOrder);
@@ -209,7 +199,7 @@ function WaiterPage() {
       unsubscribeOrderUpdated();
       unsubscribeServiceRequested();
     };
-  }, [isAuthenticated, mergeRealtimeOrder]);
+  }, [mergeRealtimeOrder]);
 
   async function updateOrderStatus(orderId: number, status: OrderStatus) {
     try {
@@ -420,14 +410,7 @@ function WaiterPage() {
         </div>
       </header>
 
-      {!isAuthenticated && (
-        <p className="waiter-state">
-          Bu panele erişmek için admin olarak giriş yapmalısınız.
-        </p>
-      )}
-
-      {isAuthenticated && (
-        <>
+      <>
           {serviceRequests.length > 0 && (
             <section className="waiter-service-requests">
               <div className="waiter-panel-heading">
@@ -681,8 +664,7 @@ function WaiterPage() {
               </section>
             </div>
           )}
-        </>
-      )}
+      </>
 
       {isEditModalOpen && editingOrder && (
         <div className="waiter-modal-overlay" onClick={closeEditModal}>

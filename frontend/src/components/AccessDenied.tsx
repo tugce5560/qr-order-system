@@ -7,7 +7,7 @@ type AccessDeniedProps = {
 };
 
 function AccessDenied({ role }: AccessDeniedProps) {
-  const returnPath = role ? getDefaultRouteForRole(role) : "/login";
+  const returnPath = role ? getDefaultRouteForRole(role) : "/admin";
 
   return (
     <main className="app-state-page">

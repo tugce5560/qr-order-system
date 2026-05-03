@@ -7,8 +7,8 @@ function NotFound() {
       <section className="app-state-panel">
         <span className="app-state-kicker">404</span>
         <h1>Sayfa bulunamadı</h1>
-        <p>Bu route tanımlı değil. Giriş yaparak rolünüze ait panele dönebilirsiniz.</p>
-        <Link to="/login">Login</Link>
+        <p>Bu route tanımlı değil. Admin paneline dönebilirsiniz.</p>
+        <Link to="/admin">Admin</Link>
       </section>
     </main>
   );

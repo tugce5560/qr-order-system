@@ -15,6 +15,13 @@ export type AuthUser = {
 
 const tokenStorageKey = "authToken";
 const legacyTokenStorageKey = "adminToken";
+const bypassUser: AuthUser = {
+  userId: "frontend-auth-disabled",
+  email: "superadmin@test.com",
+  role: "SuperAdmin",
+  restaurantId: "1",
+  fullName: "Demo Super Admin",
+};
 
 type JwtPayload = {
   userId?: string;
@@ -104,9 +111,7 @@ export function decodeAuthToken(token: string): AuthUser | null {
 }
 
 export function getCurrentUser() {
-  const token = getAuthToken();
-
-  return token ? decodeAuthToken(token) : null;
+  return bypassUser;
 }
 
 export function getDefaultRouteForRole(role: UserRole) {

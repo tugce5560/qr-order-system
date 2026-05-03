@@ -6,7 +6,6 @@ import {
   getDefaultRouteForRole,
   type UserRole,
 } from "../services/auth";
-import { isDemoAuthBypassEnabled } from "../services/demoAuth";
 import NotificationCenter from "./NotificationCenter";
 import "./PanelNavigation.css";
 
@@ -51,11 +50,10 @@ const panelLinks: PanelLink[] = [
 function PanelNavigation({ children }: PanelNavigationProps) {
   const navigate = useNavigate();
   const user = getCurrentUser();
-  const demoBypassEnabled = isDemoAuthBypassEnabled();
 
   function logout() {
     clearAuth();
-    navigate(demoBypassEnabled ? "." : "/login", { replace: true });
+    navigate("/admin", { replace: true });
   }
 
   if (!user) {
@@ -73,9 +71,6 @@ function PanelNavigation({ children }: PanelNavigationProps) {
         <div className="panel-brand">
           <span>
             QR Order
-            {demoBypassEnabled && (
-              <b className="panel-demo-badge">Demo Mod</b>
-            )}
           </span>
           <strong>{user.fullName || user.email || user.role}</strong>
         </div>
