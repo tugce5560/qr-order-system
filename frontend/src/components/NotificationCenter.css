@@ -1,0 +1,47 @@
+.notification-center {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 80;
+  display: grid;
+  width: min(360px, calc(100vw - 36px));
+  gap: 10px;
+  text-align: left;
+}
+
+.notification-toast {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  border: 1px solid #cbd5e1;
+  border-left: 5px solid #0f766e;
+  border-radius: 8px;
+  padding: 12px 44px 12px 14px;
+  background: #ffffff;
+  color: #111827;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.16);
+}
+
+.notification-toast button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #d8dde6;
+  border-radius: 6px;
+  background: #fff;
+  color: #111827;
+  cursor: pointer;
+}
+
+.notification-toast strong {
+  font-size: 14px;
+}
+
+.notification-toast p,
+.notification-toast span {
+  margin: 0;
+  color: #4b5563;
+  font-size: 13px;
+}

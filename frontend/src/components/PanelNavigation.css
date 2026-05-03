@@ -1,0 +1,157 @@
+.panel-layout {
+  min-height: 100svh;
+  background: #f6f7f9;
+}
+
+.panel-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 12px 20px;
+  border-bottom: 1px solid #dde1e7;
+  background: rgba(255, 255, 255, 0.94);
+  box-sizing: border-box;
+  backdrop-filter: blur(12px);
+}
+
+.panel-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+
+.panel-brand span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #697386;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.panel-demo-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 0 8px;
+  border: 1px solid #b7d6c0;
+  border-radius: 999px;
+  background: #e9f8ee;
+  color: #1b6b35;
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.panel-brand strong {
+  color: #111827;
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.panel-nav {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.panel-nav a,
+.panel-logout,
+.app-state-panel a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #d8dde6;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #243044;
+  font: 700 14px/1 system-ui, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: 0;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.panel-nav a.active {
+  border-color: #111827;
+  background: #111827;
+  color: #ffffff;
+}
+
+.panel-logout {
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+
+.panel-logout:hover,
+.panel-nav a:hover,
+.app-state-panel a:hover {
+  border-color: #111827;
+}
+
+.app-state-page {
+  display: grid;
+  min-height: 100svh;
+  place-items: center;
+  padding: 24px;
+  background: #f6f7f9;
+  box-sizing: border-box;
+}
+
+.app-state-panel {
+  width: min(100%, 460px);
+  padding: 28px;
+  border: 1px solid #dde1e7;
+  border-radius: 8px;
+  background: #ffffff;
+  text-align: left;
+  box-shadow: 0 16px 45px rgba(15, 23, 42, 0.08);
+}
+
+.app-state-kicker {
+  color: #697386;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.app-state-panel h1 {
+  margin: 10px 0;
+  color: #111827;
+  font-size: 34px;
+  line-height: 1.08;
+  letter-spacing: 0;
+}
+
+.app-state-panel p {
+  margin-bottom: 18px;
+  color: #4b5563;
+}
+
+@media (max-width: 760px) {
+  .panel-topbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .panel-nav {
+    justify-content: flex-start;
+  }
+
+  .panel-nav a,
+  .panel-logout {
+    flex: 1 1 calc(50% - 8px);
+  }
+}

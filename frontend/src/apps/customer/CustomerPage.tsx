@@ -1,0 +1,1381 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { api } from "../../services/api";
+import {
+  onOrderCreated,
+  onOrderUpdated,
+  startOrderHubConnection,
+} from "../../services/orderHub";
+import type { OrderEventPayload } from "../../services/orderHub";
+import "./CustomerPage.css";
+
+type Product = {
+  id: number;
+  name: string;
+  description: string | null;
+  price: number;
+  imageUrl: string | null;
+  calories?: string | number | null;
+  allergens?: string | null;
+  ingredients?: string | null;
+  removableIngredients?: string | null;
+  estimatedPreparationMinutes?: number | null;
+};
+
+type Category = {
+  id: number;
+  name: string;
+  displayOrder: number;
+  products: Product[];
+};
+
+type CartItem = {
+  productId: number;
+  name: string;
+  price: number;
+  quantity: number;
+  imageUrl: string;
+  note: string;
+  removedIngredients: string;
+};
+
+type ResolvedTable = {
+  restaurantId: number;
+  tableId: number;
+  tableNumber: number;
+  restaurantName: string;
+  logoUrl?: string | null;
+  primaryColor?: string | null;
+  accentColor?: string | null;
+  menuBackgroundColor?: string | null;
+  buttonColor?: string | null;
+};
+
+type PaymentResponse = {
+  billId: number;
+  paidAmount: number;
+  status: string;
+};
+
+type CreatePaymentResponse = {
+  billId: number;
+  amount: number;
+};
+
+type TableSessionResponse = {
+  token: string;
+  expiresAt: string;
+};
+
+type CustomerOrder = {
+  id: number;
+  tableId: number;
+  orderNumber: string;
+  status: string;
+  totalAmount: number;
+  createdAt?: string;
+  items: {
+    id: number;
+    productName: string;
+    quantity: number;
+    unitPrice: number;
+    note?: string | null;
+  }[];
+};
+
+const orderStatusLabels: Record<string, string> = {
+  New: "Sipariş alındı",
+  Preparing: "Hazırlanıyor",
+  Ready: "Hazır",
+  Served: "Teslim edildi",
+  Paid: "Ödendi",
+  Cancelled: "İptal edildi",
+};
+
+const orderStatusSteps = ["New", "Preparing", "Ready", "Served", "Paid"];
+
+const placeholderStyles: Record<string, { color: string; label: string }> = {
+  cola: { color: "#5a1f1f", label: "Cola" },
+  water: { color: "#1f6f8b", label: "Water" },
+  burger: { color: "#8a4d20", label: "Burger" },
+  pizza: { color: "#a74325", label: "Pizza" },
+  cake: { color: "#8b476d", label: "Cake" },
+  "ice cream": { color: "#5e6f9f", label: "Ice Cream" },
+};
+
+const productPhotoUrls: Record<string, string> = {
+  cola: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=900&q=80",
+  water:
+    "https://images.unsplash.com/photo-1559839914-17aae19cec71?auto=format&fit=crop&w=900&q=80",
+  burger:
+    "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=900&q=80",
+  pizza:
+    "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?auto=format&fit=crop&w=900&q=80",
+  cake: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=900&q=80",
+  "ice cream":
+    "https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=900&q=80",
+};
+
+function getApiErrorMessage(error: unknown, fallback: string) {
+  if (typeof error !== "object" || error === null || !("response" in error)) {
+    return fallback;
+  }
+
+  const response = (
+    error as {
+      response?: {
+        data?: unknown;
+      };
+    }
+  ).response;
+
+  if (typeof response?.data === "string") {
+    return response.data;
+  }
+
+  if (
+    typeof response?.data === "object" &&
+    response.data !== null &&
+    "message" in response.data
+  ) {
+    return String((response.data as { message: unknown }).message);
+  }
+
+  if (
+    typeof response?.data === "object" &&
+    response.data !== null &&
+    "title" in response.data
+  ) {
+    return String((response.data as { title: unknown }).title);
+  }
+
+  return fallback;
+}
+
+function createPlaceholderImage(productName: string) {
+  const normalizedName = productName.toLowerCase();
+  const style =
+    Object.entries(placeholderStyles).find(([key]) =>
+      normalizedName.includes(key),
+    )?.[1] ?? { color: "#3f5f45", label: productName };
+
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="900" height="620" viewBox="0 0 900 620">
+      <defs>
+        <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0" stop-color="${style.color}"/>
+          <stop offset="1" stop-color="#151515"/>
+        </linearGradient>
+      </defs>
+      <rect width="900" height="620" fill="url(#bg)"/>
+      <circle cx="710" cy="120" r="170" fill="rgba(255,255,255,0.13)"/>
+      <circle cx="170" cy="520" r="210" fill="rgba(255,255,255,0.08)"/>
+      <rect x="78" y="78" width="744" height="464" rx="44" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+      <text x="450" y="295" text-anchor="middle" font-family="Arial, sans-serif" font-size="62" font-weight="700" fill="#fff">${style.label}</text>
+      <text x="450" y="352" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="rgba(255,255,255,0.78)">Freshly prepared</text>
+    </svg>
+  `;
+
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+function getProductImageUrl(product: Pick<Product, "name" | "imageUrl">) {
+  if (product.imageUrl?.trim()) {
+    return product.imageUrl;
+  }
+
+  const normalizedName = product.name.toLowerCase();
+  const photoUrl = Object.entries(productPhotoUrls).find(([key]) =>
+    normalizedName.includes(key),
+  )?.[1];
+
+  return photoUrl || createPlaceholderImage(product.name);
+}
+
+export default function CustomerPage() {
+  const navigate = useNavigate();
+  const { restaurantSlug, tableNumber } = useParams();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [resolvedTable, setResolvedTable] = useState<ResolvedTable>({
+    restaurantId: 1,
+    tableId: 1,
+    tableNumber: 1,
+    restaurantName: "Demo Restaurant",
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPaying, setIsPaying] = useState(false);
+  const [isCallingWaiter, setIsCallingWaiter] = useState(false);
+  const [isRequestingBill, setIsRequestingBill] = useState(false);
+  const [paymentMessage, setPaymentMessage] = useState<string | null>(null);
+  const [serviceMessage, setServiceMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [modalQuantity, setModalQuantity] = useState(1);
+  const [modalNote, setModalNote] = useState("");
+  const [excludedIngredients, setExcludedIngredients] = useState<string[]>([]);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [speedRating, setSpeedRating] = useState(5);
+  const [tasteRating, setTasteRating] = useState(5);
+  const [serviceRating, setServiceRating] = useState(5);
+  const [ratingComment, setRatingComment] = useState("");
+  const [ratingError, setRatingError] = useState<string | null>(null);
+  const [isRatingSubmitting, setIsRatingSubmitting] = useState(false);
+  const [canRateOrder, setCanRateOrder] = useState(false);
+  const [ratedTableIds, setRatedTableIds] = useState<Set<number>>(
+    () => new Set(),
+  );
+  const [customerOrders, setCustomerOrders] = useState<CustomerOrder[]>([]);
+  const [orderStatusMessage, setOrderStatusMessage] = useState<string | null>(
+    null,
+  );
+  const [tableSessionToken, setTableSessionToken] = useState<string | null>(null);
+  const [tableSessionExpiresAt, setTableSessionExpiresAt] = useState<string | null>(
+    null,
+  );
+  const [isTableResolved, setIsTableResolved] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const latestTableIdRef = useRef(resolvedTable.tableId);
+
+  const cartTotal = cartItems.reduce(
+    (total, item) => total + item.price * item.quantity,
+    0,
+  );
+
+  const cartItemCount = cartItems.reduce(
+    (total, item) => total + item.quantity,
+    0,
+  );
+
+  const hasBillableOrders = customerOrders.some(
+    (order) => !["paid", "cancelled"].includes(order.status.toLowerCase()),
+  );
+
+  const hasRatedCurrentSession =
+    ratedTableIds.has(resolvedTable.tableId) ||
+    sessionStorage.getItem(`customerRatedTable:${resolvedTable.tableId}`) ===
+      "true";
+
+  useEffect(() => {
+    async function loadCustomerMenu() {
+      try {
+        setIsLoading(true);
+        setError(null);
+        setIsTableResolved(false);
+        setCustomerOrders([]);
+        setTableSessionToken(null);
+        setTableSessionExpiresAt(null);
+        setCanRateOrder(false);
+
+        let tableContext: ResolvedTable = {
+          restaurantId: 1,
+          tableId: 1,
+          tableNumber: 1,
+          restaurantName: "Demo Restaurant",
+        };
+
+        if (restaurantSlug && tableNumber) {
+          const resolveResponse = await api.get<ResolvedTable>(
+            "/public/resolve-table",
+            {
+              params: {
+                restaurantSlug,
+                tableNumber,
+              },
+            },
+          );
+
+          tableContext = resolveResponse.data;
+        }
+
+        setResolvedTable(tableContext);
+        latestTableIdRef.current = tableContext.tableId;
+        sessionStorage.setItem("customerRestaurantId", String(tableContext.restaurantId));
+        sessionStorage.setItem("customerTableId", String(tableContext.tableId));
+        sessionStorage.setItem(
+          "customerTableNumber",
+          String(tableContext.tableNumber),
+        );
+
+        const menuResponse = await api.get<Category[]>(
+          `/menu/${tableContext.restaurantId}`,
+        );
+
+        const tableSessionResponse = await api.post<TableSessionResponse>(
+          "/public/table-session",
+          {
+            restaurantId: tableContext.restaurantId,
+            tableId: tableContext.tableId,
+          },
+        );
+
+        setTableSessionToken(tableSessionResponse.data.token);
+        setTableSessionExpiresAt(tableSessionResponse.data.expiresAt);
+        setCategories(menuResponse.data);
+        setIsTableResolved(true);
+      } catch {
+        setError("Table or menu could not be loaded.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadCustomerMenu();
+  }, [restaurantSlug, tableNumber]);
+
+  const loadTableOrders = useCallback(async () => {
+    if (!isTableResolved) {
+      return;
+    }
+
+    const tableId = resolvedTable.tableId;
+
+    try {
+      const ordersResponse = await api.get<CustomerOrder[]>(
+        `/orders?restaurantId=${resolvedTable.restaurantId}&tableId=${tableId}`,
+      );
+
+      if (tableId !== latestTableIdRef.current) {
+        return;
+      }
+
+      setCustomerOrders(ordersResponse.data);
+      setCanRateOrder(
+        ordersResponse.data.some(
+          (order) =>
+            order.tableId === tableId &&
+            ["served", "paid"].includes(order.status.toLowerCase()),
+        ),
+      );
+    } catch {
+      setCanRateOrder(false);
+    }
+  }, [isTableResolved, resolvedTable.restaurantId, resolvedTable.tableId]);
+
+  useEffect(() => {
+    if (!isTableResolved) {
+      return;
+    }
+
+    window.setTimeout(() => {
+      void loadTableOrders();
+    }, 0);
+
+    const intervalId = window.setInterval(loadTableOrders, 10000);
+
+    return () => window.clearInterval(intervalId);
+  }, [isTableResolved, loadTableOrders, resolvedTable.tableId]);
+
+  useEffect(() => {
+    if (!isTableResolved) {
+      return;
+    }
+
+    startOrderHubConnection();
+
+    const handleOrderEvent = (orderEvent: OrderEventPayload) => {
+      if (orderEvent.tableId !== resolvedTable.tableId) {
+        return;
+      }
+
+      if (orderEvent.status === "Ready") {
+        setOrderStatusMessage("Siparişiniz hazır.");
+      }
+
+      if (orderEvent.status === "Served") {
+        setOrderStatusMessage(
+          "Siparişiniz teslim edildi. Deneyiminizi değerlendirebilirsiniz.",
+        );
+      }
+
+      const realtimeOrder: CustomerOrder = {
+        id: orderEvent.id ?? orderEvent.orderId,
+        tableId: orderEvent.tableId,
+        orderNumber: orderEvent.orderNumber,
+        status: orderEvent.status,
+        totalAmount: orderEvent.totalAmount,
+        createdAt: orderEvent.createdAt,
+        items: orderEvent.items ?? [],
+      };
+
+      setCustomerOrders((currentOrders) => {
+        const existingOrder = currentOrders.some(
+          (order) => order.id === realtimeOrder.id,
+        );
+
+        if (!existingOrder) {
+          return [realtimeOrder, ...currentOrders];
+        }
+
+        return currentOrders.map((order) =>
+          order.id === realtimeOrder.id ? realtimeOrder : order,
+        );
+      });
+
+      setCanRateOrder((currentValue) =>
+        ["served", "paid"].includes(orderEvent.status.toLowerCase())
+          ? true
+          : currentValue,
+      );
+    };
+
+    const unsubscribeCreated = onOrderCreated(handleOrderEvent);
+    const unsubscribeUpdated = onOrderUpdated(handleOrderEvent);
+
+    return () => {
+      unsubscribeCreated();
+      unsubscribeUpdated();
+    };
+  }, [isTableResolved, loadTableOrders, resolvedTable.tableId]);
+
+  function addToCart(
+    product: Product,
+    quantity = 1,
+    note = "",
+    removedIngredients = "",
+  ) {
+    const trimmedNote = note.trim();
+    const trimmedRemovedIngredients = removedIngredients.trim();
+
+    setCartItems((currentItems) => {
+      const existingItem = currentItems.find(
+        (item) =>
+          item.productId === product.id &&
+          item.note === trimmedNote &&
+          item.removedIngredients === trimmedRemovedIngredients,
+      );
+
+      if (existingItem) {
+        return currentItems.map((item) =>
+          item.productId === product.id &&
+          item.note === trimmedNote &&
+          item.removedIngredients === trimmedRemovedIngredients
+            ? { ...item, quantity: item.quantity + quantity }
+            : item,
+        );
+      }
+
+      return [
+        ...currentItems,
+        {
+          productId: product.id,
+          name: product.name,
+          price: product.price,
+          imageUrl: getProductImageUrl(product),
+          quantity,
+          note: trimmedNote,
+          removedIngredients: trimmedRemovedIngredients,
+        },
+      ];
+    });
+  }
+
+  function increaseQuantity(productId: number, note: string, removedIngredients: string) {
+    setCartItems((currentItems) =>
+      currentItems.map((item) =>
+        item.productId === productId &&
+        item.note === note &&
+        item.removedIngredients === removedIngredients
+          ? { ...item, quantity: item.quantity + 1 }
+          : item,
+      ),
+    );
+  }
+
+  function decreaseQuantity(productId: number, note: string, removedIngredients: string) {
+    setCartItems((currentItems) =>
+      currentItems
+        .map((item) =>
+          item.productId === productId &&
+          item.note === note &&
+          item.removedIngredients === removedIngredients
+            ? { ...item, quantity: item.quantity - 1 }
+            : item,
+        )
+        .filter((item) => item.quantity > 0),
+    );
+  }
+
+  function removeFromCart(productId: number, note: string, removedIngredients: string) {
+    setCartItems((currentItems) =>
+      currentItems.filter(
+        (item) =>
+          !(
+            item.productId === productId &&
+            item.note === note &&
+            item.removedIngredients === removedIngredients
+          ),
+      ),
+    );
+  }
+
+  function openProductModal(product: Product) {
+    setSelectedProduct(product);
+    setModalQuantity(1);
+    setModalNote("");
+    setExcludedIngredients([]);
+  }
+
+  function closeProductModal() {
+    setSelectedProduct(null);
+  }
+
+  function scrollToCategory(categoryId: number) {
+    document
+      .getElementById(`category-${categoryId}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function goToMyOrders() {
+    sessionStorage.setItem("customerTableId", String(resolvedTable.tableId));
+    sessionStorage.setItem(
+      "customerTableNumber",
+      String(resolvedTable.tableNumber),
+    );
+    navigate("/customer/orders");
+  }
+
+  function addSelectedProductToCart() {
+    if (selectedProduct === null) {
+      return;
+    }
+
+    addToCart(
+      selectedProduct,
+      modalQuantity,
+      modalNote,
+      excludedIngredients.join(", "),
+    );
+    closeProductModal();
+  }
+
+  function getProductIngredients(product: Product | null) {
+    const source = product?.removableIngredients || product?.ingredients;
+
+    if (!source) {
+      return [];
+    }
+
+    return source
+      .split(/[,;\n]/)
+      .map((ingredient) => ingredient.trim())
+      .filter(Boolean);
+  }
+
+  function toggleExcludedIngredient(ingredient: string) {
+    setExcludedIngredients((currentIngredients) =>
+      currentIngredients.includes(ingredient)
+        ? currentIngredients.filter(
+            (currentIngredient) => currentIngredient !== ingredient,
+          )
+        : [...currentIngredients, ingredient],
+    );
+  }
+
+  function getProductDetailValue(
+    product: Product,
+    field:
+      | "calories"
+      | "allergens"
+      | "ingredients"
+      | "estimatedPreparationMinutes",
+  ) {
+    if (field === "estimatedPreparationMinutes") {
+      return product.estimatedPreparationMinutes
+        ? `${product.estimatedPreparationMinutes} min`
+        : "10-15 min";
+    }
+
+    return product[field] || "Not specified";
+  }
+
+  async function pay() {
+    try {
+      setIsPaying(true);
+      setPaymentMessage(null);
+
+      await api.post<CreatePaymentResponse>(
+        "/payments/create",
+        {
+          restaurantId: resolvedTable.restaurantId,
+          tableId: resolvedTable.tableId,
+        },
+      );
+
+      const response = await api.post<PaymentResponse>(
+        "/payments/pay",
+        {
+          restaurantId: resolvedTable.restaurantId,
+          tableId: resolvedTable.tableId,
+          paymentMethod: "Card",
+        },
+      );
+
+      setPaymentMessage(
+        `Payment successful. Paid amount: ${response.data.paidAmount}`,
+      );
+      setCartItems([]);
+      setIsCartOpen(false);
+      navigate(`/receipt/${response.data.billId}`);
+    } catch {
+      setPaymentMessage("Payment could not be completed.");
+    } finally {
+      setIsPaying(false);
+    }
+  }
+
+  async function callWaiter() {
+    try {
+      setIsCallingWaiter(true);
+      setServiceMessage(null);
+
+      await api.post("/public/service-request", {
+        restaurantId: resolvedTable.restaurantId,
+        tableId: resolvedTable.tableId,
+        type: "Waiter",
+      });
+
+      setServiceMessage(
+        `Garson çağrıldı. Masa ${resolvedTable.tableNumber} için ekibe haber verildi.`,
+      );
+    } catch (waiterError) {
+      setServiceMessage(
+        getApiErrorMessage(
+          waiterError,
+          "Garson çağrısı gönderilemedi. Lütfen birazdan tekrar deneyin.",
+        ),
+      );
+    } finally {
+      setIsCallingWaiter(false);
+    }
+  }
+
+  async function requestBill() {
+    try {
+      setIsRequestingBill(true);
+      setServiceMessage(null);
+
+      const response = await api.post<CreatePaymentResponse>(
+        "/payments/create",
+        {
+          restaurantId: resolvedTable.restaurantId,
+          tableId: resolvedTable.tableId,
+        },
+      );
+
+      setServiceMessage(
+        `Hesap istendi. Toplam tutar: ₺${response.data.amount}`,
+      );
+      try {
+        await api.post("/public/service-request", {
+          restaurantId: resolvedTable.restaurantId,
+          tableId: resolvedTable.tableId,
+          type: "Bill",
+        });
+      } catch {
+        setServiceMessage("Hesap isteği alındı, bildirim gönderilemedi.");
+      }
+      await loadTableOrders();
+    } catch (billError) {
+      setServiceMessage(
+        getApiErrorMessage(
+          billError,
+          "Hesap isteği gönderilemedi. Lütfen birazdan tekrar deneyin.",
+        ),
+      );
+    } finally {
+      setIsRequestingBill(false);
+    }
+  }
+
+  async function submitRating() {
+    try {
+      setIsRatingSubmitting(true);
+      setRatingError(null);
+
+      await api.post("/ratings", {
+        restaurantId: resolvedTable.restaurantId,
+        tableId: resolvedTable.tableId,
+        speed: speedRating,
+        taste: tasteRating,
+        service: serviceRating,
+        comment: ratingComment.trim() || null,
+      });
+
+      sessionStorage.setItem(
+        `customerRatedTable:${resolvedTable.tableId}`,
+        "true",
+      );
+      setRatedTableIds((currentIds) => {
+        const nextIds = new Set(currentIds);
+        nextIds.add(resolvedTable.tableId);
+        return nextIds;
+      });
+      setCanRateOrder(false);
+      setPaymentMessage("Thanks for your feedback ❤️");
+      setShowRatingModal(false);
+    } catch {
+      setRatingError("Rating could not be submitted.");
+      setPaymentMessage("Rating could not be submitted.");
+    } finally {
+      setIsRatingSubmitting(false);
+    }
+  }
+
+  function renderRatingInput(
+    label: string,
+    icon: string,
+    value: number,
+    setValue: (value: number) => void,
+  ) {
+    return (
+      <div className="rating-field">
+        <span>
+          {label} <b>{icon}</b>
+        </span>
+        <div className="rating-stars" role="group" aria-label={`${label} rating`}>
+          {[1, 2, 3, 4, 5].map((ratingValue) => (
+            <button
+              className={ratingValue <= value ? "rating-star active" : "rating-star"}
+              key={ratingValue}
+              type="button"
+              onClick={() => setValue(ratingValue)}
+              aria-label={`${ratingValue} out of 5`}
+            >
+              ★
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  function getStatusLabel(status: string) {
+    return orderStatusLabels[status] || status;
+  }
+
+  function getStatusStepIndex(status: string) {
+    return orderStatusSteps.includes(status)
+      ? orderStatusSteps.indexOf(status)
+      : -1;
+  }
+
+  function openRatingModal() {
+    setSpeedRating(5);
+    setTasteRating(5);
+    setServiceRating(5);
+    setRatingComment("");
+    setRatingError(null);
+    setShowRatingModal(true);
+  }
+
+  async function placeOrder() {
+    if (!tableSessionToken) {
+      alert("Masa oturumu bulunamadı. Lütfen QR kodu tekrar okutun.");
+      return;
+    }
+
+    if (
+      tableSessionExpiresAt &&
+      new Date(tableSessionExpiresAt).getTime() <= Date.now()
+    ) {
+      alert("Masa oturumunuzun süresi doldu. Lütfen QR kodu tekrar okutun.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      await api.post("/orders", {
+        restaurantId: resolvedTable.restaurantId,
+        tableId: resolvedTable.tableId,
+        tableSessionToken,
+        items: cartItems.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          note: item.note || null,
+          removedIngredients: item.removedIngredients || null,
+        })),
+      });
+
+      alert("Order placed successfully");
+      setCartItems([]);
+      setIsCartOpen(false);
+    } catch (orderError) {
+      alert(
+        getApiErrorMessage(
+          orderError,
+          "Order could not be placed. Please scan the QR code again.",
+        ),
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  if (isLoading) {
+    return <p className="customer-status">Loading menu...</p>;
+  }
+
+  if (error) {
+    return <p className="customer-status customer-status-error">{error}</p>;
+  }
+
+  return (
+    <main
+      className={isCartOpen ? "customer-page cart-view-open" : "customer-page"}
+      style={{
+        background: resolvedTable.menuBackgroundColor || undefined,
+        ["--customer-primary" as string]: resolvedTable.primaryColor || undefined,
+        ["--customer-accent" as string]: resolvedTable.accentColor || undefined,
+        ["--customer-button" as string]: resolvedTable.buttonColor || undefined,
+      }}
+    >
+      <header className="customer-topbar">
+        <div className="customer-brand">
+          {resolvedTable.logoUrl && (
+            <img src={resolvedTable.logoUrl} alt={resolvedTable.restaurantName} />
+          )}
+          <span>{resolvedTable.restaurantName}</span>
+          <strong>Table {resolvedTable.tableNumber}</strong>
+        </div>
+        <div className="customer-topbar-actions">
+          <button
+            className="customer-orders-link"
+            type="button"
+            onClick={goToMyOrders}
+          >
+            Siparişlerim
+          </button>
+          {isCartOpen && (
+            <button
+              className="customer-menu-link"
+              type="button"
+              onClick={() => setIsCartOpen(false)}
+            >
+              Menu
+            </button>
+          )}
+        </div>
+      </header>
+
+      {!isCartOpen && (
+        <section className="customer-hero">
+          <p className="customer-kicker">QR MENU</p>
+          <h1>{resolvedTable.restaurantName}</h1>
+          <p className="customer-table">Table {resolvedTable.tableNumber}</p>
+          <p className="customer-subtitle">
+            Fresh favorites, sent straight to your table.
+          </p>
+        </section>
+      )}
+
+      {paymentMessage && <p className="customer-message">{paymentMessage}</p>}
+      {serviceMessage && <p className="customer-message">{serviceMessage}</p>}
+      {orderStatusMessage && (
+        <p className="customer-message order-status-message">
+          {orderStatusMessage}
+        </p>
+      )}
+
+      {!isCartOpen && categories.length > 0 && (
+        <nav className="category-tabs" aria-label="Menu categories">
+          {categories.map((category) => (
+            <button
+              key={category.id}
+              type="button"
+              onClick={() => scrollToCategory(category.id)}
+            >
+              {category.name}
+            </button>
+          ))}
+        </nav>
+      )}
+
+      <div className="customer-content">
+        {!isCartOpen && (
+        <div className="menu-sections">
+          <section className="customer-service-panel">
+            <div>
+              <p>Servis</p>
+              <h2>Yardım mı lazım?</h2>
+              <span>Masanızdan ayrılmadan ekibe ulaşın.</span>
+            </div>
+            <div className="customer-service-actions">
+              <button
+                className="call-waiter-button"
+                type="button"
+                onClick={callWaiter}
+                disabled={isCallingWaiter}
+              >
+                {isCallingWaiter ? "Çağrılıyor..." : "Garson Çağır"}
+              </button>
+              <button
+                className="request-bill-button"
+                type="button"
+                onClick={requestBill}
+                disabled={isRequestingBill || !hasBillableOrders}
+              >
+                {isRequestingBill ? "Gönderiliyor..." : "Hesap İste"}
+              </button>
+            </div>
+          </section>
+
+          <section className="customer-orders-panel">
+            <div className="customer-orders-header">
+              <div>
+                <p>Canlı takip</p>
+                <h2>My Orders</h2>
+              </div>
+              <span>{customerOrders.length} sipariş</span>
+            </div>
+
+            {customerOrders.length === 0 ? (
+              <p className="customer-orders-empty">
+                Henüz aktif siparişiniz yok.
+              </p>
+            ) : (
+              <div className="customer-order-list">
+                {customerOrders.map((order) => {
+                  const currentStepIndex = getStatusStepIndex(order.status);
+
+                  return (
+                    <article className="customer-order-card" key={order.id}>
+                      <div className="customer-order-top">
+                        <div>
+                          <h3>#{order.orderNumber}</h3>
+                          <span
+                            className={`customer-order-status status-${order.status.toLowerCase()}`}
+                          >
+                            {getStatusLabel(order.status)}
+                          </span>
+                        </div>
+                        <strong>₺{order.totalAmount}</strong>
+                      </div>
+
+                      {order.status === "Cancelled" ? (
+                        <div className="cancelled-order-state">
+                          Bu sipariş iptal edildi.
+                        </div>
+                      ) : (
+                        <div className="order-stepper" aria-label="Order status">
+                          {orderStatusSteps.map((step, index) => (
+                            <div
+                              className={
+                                index <= currentStepIndex
+                                  ? "order-step active"
+                                  : "order-step"
+                              }
+                              key={step}
+                            >
+                              <span />
+                              <p>{getStatusLabel(step)}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="customer-order-items">
+                        {order.items.map((item) => (
+                          <div className="customer-order-item-row" key={item.id}>
+                            <div>
+                              <span>
+                                {item.quantity} x {item.productName}
+                              </span>
+                              <strong>₺{item.unitPrice * item.quantity}</strong>
+                            </div>
+                            {item.note && (
+                              <p className="customer-order-item-note">
+                                {item.note}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          {categories.map((category) => (
+            <section
+              className="menu-category"
+              id={`category-${category.id}`}
+              key={category.id}
+            >
+              <div className="menu-category-heading">
+                <h2>{category.name}</h2>
+                <span>{category.products.length} items</span>
+              </div>
+
+              <div className="product-list">
+                {category.products.map((product) => (
+                  <article
+                    className="product-card"
+                    key={product.id}
+                    onClick={() => openProductModal(product)}
+                  >
+                    <img
+                      className="product-image"
+                      src={getProductImageUrl(product)}
+                      alt={product.name}
+                    />
+                    <div className="product-body">
+                      <h3>{product.name}</h3>
+                      <p>
+                        {product.description ||
+                          "Chef-prepared and ready for your table."}
+                      </p>
+                      <div className="product-card-footer">
+                        <strong>₺{product.price}</strong>
+                        <button
+                          className="product-add-button"
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            addToCart(product);
+                          }}
+                          aria-label={`Add ${product.name} to cart`}
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+        )}
+
+        <section className={isCartOpen ? "cart-panel cart-page" : "cart-panel"}>
+          <div className="cart-header">
+            <div>
+              <p>Your order</p>
+              <h2>Your Cart</h2>
+            </div>
+            <span>{cartItemCount} items</span>
+          </div>
+
+          {cartItems.length === 0 ? (
+            <p className="empty-cart">Your cart is empty.</p>
+          ) : (
+            <>
+              <div className="cart-items">
+                {cartItems.map((item) => (
+                  <article
+                    className="cart-item"
+                    key={`${item.productId}-${item.note}`}
+                  >
+                    <img
+                      className="cart-item-image"
+                      src={item.imageUrl}
+                      alt={item.name}
+                    />
+                    <div className="cart-item-main">
+                      <div>
+                        <h3>{item.name}</h3>
+                        <p>₺{item.price} each</p>
+                        {item.note && (
+                          <p className="cart-item-note">Note: {item.note}</p>
+                        )}
+                        {item.removedIngredients && (
+                          <p className="cart-item-note">
+                            Çıkarılanlar: {item.removedIngredients}
+                          </p>
+                        )}
+                      </div>
+                      <div className="quantity-controls">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            decreaseQuantity(
+                              item.productId,
+                              item.note,
+                              item.removedIngredients,
+                            )
+                          }
+                        >
+                          -
+                        </button>
+                        <span>{item.quantity}</span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            increaseQuantity(
+                              item.productId,
+                              item.note,
+                              item.removedIngredients,
+                            )
+                          }
+                        >
+                          +
+                        </button>
+                        <button
+                          className="remove-button"
+                          type="button"
+                          onClick={() =>
+                            removeFromCart(
+                              item.productId,
+                              item.note,
+                              item.removedIngredients,
+                            )
+                          }
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+
+              <div className="cart-total">
+                <span>Total</span>
+                <strong>₺{cartTotal}</strong>
+              </div>
+
+              <div className="cart-actions">
+                <button
+                  className="place-order-button"
+                  type="button"
+                  onClick={placeOrder}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Placing order..." : "Place Order"}
+                </button>
+                <button
+                  className="pay-button"
+                  type="button"
+                  onClick={pay}
+                  disabled={isPaying}
+                >
+                  {isPaying ? "Paying..." : "Pay"}
+                </button>
+              </div>
+            </>
+          )}
+        </section>
+      </div>
+
+      {!isCartOpen && (
+        <div className="cart-bottom-bar" role="region" aria-label="Cart summary">
+          <div>
+            <span>{cartItemCount} items</span>
+            <strong>₺{cartTotal}</strong>
+          </div>
+          <button type="button" onClick={() => setIsCartOpen(true)}>
+            View Cart
+          </button>
+        </div>
+      )}
+
+      {canRateOrder && !hasRatedCurrentSession && !showRatingModal && (
+        <button
+          className="floating-rating-button"
+          type="button"
+          onClick={openRatingModal}
+        >
+          Deneyimi Değerlendir
+        </button>
+      )}
+
+      {selectedProduct && (
+        <div
+          className="product-modal-backdrop"
+          role="presentation"
+          onClick={closeProductModal}
+        >
+          <section
+            className="product-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="product-detail-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              className="product-modal-close"
+              type="button"
+              onClick={closeProductModal}
+              aria-label="Close product detail"
+            >
+              X
+            </button>
+            <img
+              className="product-modal-image"
+              src={getProductImageUrl(selectedProduct)}
+              alt={selectedProduct.name}
+            />
+            <div className="product-modal-body">
+              <div>
+                <h2 id="product-detail-title">{selectedProduct.name}</h2>
+                <p className="product-modal-description">
+                  {selectedProduct.description ||
+                    "Chef-prepared and ready for your table."}
+                </p>
+              </div>
+
+              <strong className="product-modal-price">
+                ₺{selectedProduct.price}
+              </strong>
+
+              <dl className="product-detail-list">
+                <div>
+                  <dt>Calories</dt>
+                  <dd>{getProductDetailValue(selectedProduct, "calories")}</dd>
+                </div>
+                <div>
+                  <dt>Allergens</dt>
+                  <dd>{getProductDetailValue(selectedProduct, "allergens")}</dd>
+                </div>
+                <div>
+                  <dt>Ingredients</dt>
+                  <dd>
+                    {getProductIngredients(selectedProduct).length > 0
+                      ? "Tap ingredients to remove"
+                      : getProductDetailValue(selectedProduct, "ingredients")}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Preparation</dt>
+                  <dd>
+                    {getProductDetailValue(
+                      selectedProduct,
+                      "estimatedPreparationMinutes",
+                    )}
+                  </dd>
+                </div>
+              </dl>
+
+              {getProductIngredients(selectedProduct).length > 0 && (
+                <div className="ingredient-picker">
+                  <span>Çıkarılacak Malzemeler</span>
+                  <div>
+                    {getProductIngredients(selectedProduct).map((ingredient) => (
+                      <button
+                        className={
+                          excludedIngredients.includes(ingredient)
+                            ? "ingredient-chip excluded"
+                            : "ingredient-chip"
+                        }
+                        key={ingredient}
+                        type="button"
+                        onClick={() => toggleExcludedIngredient(ingredient)}
+                      >
+                        {ingredient}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <label className="product-note-field">
+                <span>Note</span>
+                <textarea
+                  value={modalNote}
+                  onChange={(event) => setModalNote(event.target.value)}
+                  placeholder="Add a note for the kitchen"
+                />
+              </label>
+
+              <div className="product-modal-actions">
+                <div className="modal-quantity-controls">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setModalQuantity((quantity) => Math.max(1, quantity - 1))
+                    }
+                  >
+                    -
+                  </button>
+                  <span>{modalQuantity}</span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setModalQuantity((quantity) => quantity + 1)
+                    }
+                  >
+                    +
+                  </button>
+                </div>
+                <button type="button" onClick={addSelectedProductToCart}>
+                  Add to Cart
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {showRatingModal && (
+        <div
+          className="rating-modal-backdrop"
+          role="presentation"
+          onClick={() => setShowRatingModal(false)}
+        >
+          <section
+            className="rating-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="rating-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              className="rating-modal-close"
+              type="button"
+              onClick={() => setShowRatingModal(false)}
+              aria-label="Close rating modal"
+            >
+              X
+            </button>
+            <p className="rating-kicker">Your order was served</p>
+            <h2 id="rating-modal-title">How was your experience?</h2>
+            <p className="rating-helper">
+              Your feedback helps us improve the next visit.
+            </p>
+
+            <div className="rating-fields">
+              {renderRatingInput("Speed", "⚡", speedRating, setSpeedRating)}
+              {renderRatingInput("Taste", "🍔", tasteRating, setTasteRating)}
+              {renderRatingInput(
+                "Service",
+                "🤝",
+                serviceRating,
+                setServiceRating,
+              )}
+            </div>
+
+            <label className="rating-comment-field">
+              <span>Comment</span>
+              <textarea
+                value={ratingComment}
+                onChange={(event) => setRatingComment(event.target.value)}
+                placeholder="Tell us more..."
+              />
+            </label>
+
+            {ratingError && <p className="rating-error">{ratingError}</p>}
+
+            <button
+              className="rating-submit-button"
+              type="button"
+              onClick={submitRating}
+              disabled={isRatingSubmitting}
+            >
+              {isRatingSubmitting ? "Submitting..." : "Submit"}
+            </button>
+          </section>
+        </div>
+      )}
+
+      <footer className="customer-footer">
+        <span>Need help? Call our staff.</span>
+        <span>Thank you for dining with us!</span>
+      </footer>
+    </main>
+  );
+}

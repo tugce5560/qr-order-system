@@ -1,0 +1,821 @@
+.waiter-page {
+  width: 100%;
+  min-height: 100svh;
+  padding: 16px;
+  box-sizing: border-box;
+  background: #f5f7fb;
+  color: #14171f;
+  text-align: left;
+}
+
+@media print {
+  .panel-topbar,
+  .waiter-header,
+  .waiter-board,
+  .waiter-service-requests,
+  .notification-center,
+  .waiter-bill-heading button {
+    display: none !important;
+  }
+
+  .waiter-page,
+  .waiter-bill-backdrop,
+  .waiter-bill-modal {
+    position: static;
+    display: block;
+    width: 100%;
+    max-height: none;
+    padding: 0;
+    border: 0;
+    background: #fff;
+    box-shadow: none;
+  }
+}
+
+.waiter-page * {
+  box-sizing: border-box;
+}
+
+.waiter-header,
+.waiter-service-requests,
+.waiter-filter-panel,
+.waiter-orders-panel {
+  border: 1px solid #e4e8f0;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 14px 32px rgba(20, 23, 31, 0.07);
+}
+
+.waiter-header {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 18px;
+}
+
+.waiter-header p,
+.waiter-panel-heading p,
+.waiter-bill-heading p {
+  margin: 0 0 5px;
+  color: #ff6b00;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.waiter-header h1,
+.waiter-panel-heading h2,
+.waiter-bill-heading h2 {
+  margin: 0;
+  color: #14171f;
+  line-height: 1.06;
+  letter-spacing: 0;
+  font-weight: 950;
+}
+
+.waiter-header h1 {
+  font-size: 32px;
+}
+
+.waiter-header-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.waiter-header-stats article {
+  min-width: 0;
+  border-radius: 8px;
+  padding: 13px;
+  background: #f8fafc;
+}
+
+.waiter-header-stats span {
+  display: block;
+  margin-bottom: 7px;
+  color: #697386;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.waiter-header-stats strong {
+  color: #14171f;
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 950;
+}
+
+.waiter-service-requests {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 14px;
+  border-color: #ffd4b8;
+  background: #fff8f3;
+}
+
+.waiter-request-list {
+  display: grid;
+  gap: 10px;
+}
+
+.waiter-request-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(151, 71, 6, 0.08);
+}
+
+.waiter-request-card div {
+  display: grid;
+  gap: 3px;
+}
+
+.waiter-request-card strong {
+  color: #14171f;
+  font-size: 16px;
+}
+
+.waiter-request-card span {
+  color: #d9480f;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.waiter-request-card.request-waiter span {
+  color: #057a55;
+}
+
+.waiter-request-clear {
+  min-width: 52px;
+  min-height: 42px;
+  border: 0;
+  border-radius: 8px;
+  background: #14171f;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.waiter-board {
+  display: grid;
+  gap: 16px;
+}
+
+.waiter-filter-panel,
+.waiter-orders-panel {
+  padding: 14px;
+}
+
+.waiter-panel-heading,
+.waiter-order-top,
+.waiter-order-meta,
+.waiter-order-actions,
+.waiter-bill-heading,
+.waiter-bill-meta,
+.waiter-bill-items li,
+.waiter-bill-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.waiter-panel-heading {
+  margin-bottom: 14px;
+}
+
+.waiter-panel-heading h2 {
+  font-size: 22px;
+}
+
+.waiter-panel-heading > span {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: #fff0e6;
+  color: #c2410c;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.waiter-status-tabs {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.waiter-status-tabs button {
+  min-width: 156px;
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid #e4e8f0;
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #fff;
+  color: #475467;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    transform 0.16s ease,
+    border-color 0.16s ease,
+    background 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.waiter-status-tabs button:hover,
+.waiter-status-tabs button.active {
+  transform: translateY(-1px);
+  border-color: #ff8a3d;
+  background: #fff8f3;
+  box-shadow: 0 10px 22px rgba(255, 107, 0, 0.12);
+}
+
+.waiter-status-tabs span {
+  font-size: 13px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.waiter-status-tabs strong {
+  min-width: 30px;
+  border-radius: 999px;
+  padding: 6px 8px;
+  background: #f1f5f9;
+  color: #14171f;
+  font-size: 12px;
+  text-align: center;
+}
+
+.waiter-state,
+.waiter-empty-detail {
+  margin: 0;
+  border: 1px dashed #cfd6e3;
+  border-radius: 8px;
+  padding: 20px;
+  background: #f8fafc;
+  color: #697386;
+  font-weight: 850;
+  text-align: center;
+}
+
+.waiter-empty-detail {
+  min-height: 220px;
+  display: grid;
+  place-content: center;
+  gap: 8px;
+}
+
+.waiter-empty-detail strong {
+  color: #14171f;
+  font-size: 20px;
+}
+
+.waiter-empty-detail span {
+  max-width: 360px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.waiter-error {
+  margin-bottom: 12px;
+  border-color: #fecaca;
+  background: #fff1f2;
+  color: #991b1b;
+}
+
+.waiter-loading-list,
+.waiter-order-list {
+  display: grid;
+  gap: 12px;
+}
+
+.waiter-skeleton-card {
+  min-height: 190px;
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.72), transparent),
+    #edf1f7;
+  background-size: 220% 100%;
+  animation: waiter-skeleton 1.15s ease-in-out infinite;
+}
+
+@keyframes waiter-skeleton {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -20% 0;
+  }
+}
+
+.waiter-order-card {
+  display: grid;
+  gap: 12px;
+  border: 1px solid #e4e8f0;
+  border-left: 5px solid #ff6b00;
+  border-radius: 8px;
+  padding: 14px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(20, 23, 31, 0.08);
+}
+
+.waiter-order-card.status-preparing {
+  border-left-color: #2563eb;
+}
+
+.waiter-order-card.status-ready {
+  border-left-color: #16a34a;
+}
+
+.waiter-order-card.status-served {
+  border-left-color: #7c3aed;
+}
+
+.waiter-order-card.status-paid {
+  border-left-color: #64748b;
+}
+
+.waiter-order-top {
+  align-items: flex-start;
+}
+
+.waiter-order-top div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.waiter-order-top span:first-child {
+  color: #ff6b00;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.waiter-order-top h3 {
+  margin: 0;
+  color: #14171f;
+  font-size: 21px;
+  line-height: 1.1;
+  font-weight: 950;
+}
+
+.table-status-badge {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 8px 10px;
+  background: #fff0e6;
+  color: #c2410c;
+  font-size: 12px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.table-status-badge.status-preparing {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.table-status-badge.status-ready {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.table-status-badge.status-served {
+  background: #f5f3ff;
+  color: #6d28d9;
+}
+
+.table-status-badge.status-paid {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.waiter-order-meta {
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #f8fafc;
+}
+
+.waiter-order-meta span {
+  color: #697386;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.waiter-order-meta strong {
+  color: #14171f;
+  font-size: 20px;
+  line-height: 1;
+  font-weight: 950;
+}
+
+.waiter-order-card ul,
+.waiter-bill-items {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.waiter-order-card li {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fbfcfe;
+  color: #344054;
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.waiter-order-card li span {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  overflow-wrap: anywhere;
+}
+
+.waiter-order-card li span b {
+  color: #ff6b00;
+}
+
+.waiter-order-card li small {
+  grid-column: 2;
+  color: #697386;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.waiter-order-card li strong {
+  flex: 0 0 auto;
+  color: #14171f;
+}
+
+.waiter-order-actions {
+  flex-wrap: wrap;
+  border-top: 1px solid #e4e8f0;
+  padding-top: 12px;
+}
+
+.waiter-order-actions button,
+.waiter-bill-heading button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 14px;
+  background: #ff6b00;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 950;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(255, 107, 0, 0.18);
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    opacity 0.16s ease;
+}
+
+.waiter-order-actions button.secondary,
+.waiter-bill-heading button {
+  border: 1px solid #d7dde8;
+  background: #fff;
+  color: #14171f;
+  box-shadow: none;
+}
+
+.waiter-order-actions button:hover,
+.waiter-bill-heading button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 26px rgba(255, 107, 0, 0.22);
+}
+
+.waiter-order-actions button.secondary:hover,
+.waiter-bill-heading button:hover {
+  box-shadow: 0 10px 20px rgba(20, 23, 31, 0.08);
+}
+
+.waiter-order-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+  transform: none;
+  box-shadow: none;
+}
+
+.waiter-bill-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: end center;
+  padding: 16px;
+  background: rgba(20, 23, 31, 0.44);
+}
+
+.waiter-bill-modal {
+  width: min(100%, 460px);
+  max-height: calc(100svh - 32px);
+  overflow: auto;
+  border-radius: 8px;
+  padding: 18px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(20, 23, 31, 0.28);
+}
+
+.waiter-bill-heading {
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.waiter-bill-meta {
+  border-radius: 8px;
+  padding: 11px 12px;
+  background: #f8fafc;
+  color: #697386;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.waiter-bill-items {
+  margin-top: 14px;
+}
+
+.waiter-bill-items li {
+  border-bottom: 1px solid #edf1f7;
+  padding: 10px 0;
+  color: #344054;
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.waiter-bill-total {
+  margin-top: 16px;
+  border-radius: 8px;
+  padding: 14px;
+  background: #14171f;
+  color: #fff;
+}
+
+.waiter-bill-total span {
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.waiter-bill-total strong {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.waiter-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.waiter-modal {
+  background: #fff;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.waiter-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e4e8f0;
+}
+
+.waiter-modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.waiter-modal-header button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #697386;
+}
+
+.waiter-modal-body {
+  padding: 20px;
+}
+
+.edit-order-items h3,
+.edit-order-note h3 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.edit-item-row {
+  border: 1px solid #e4e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.edit-item-info {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.edit-item-info select {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #d7dde8;
+  border-radius: 4px;
+}
+
+.quantity-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.quantity-controls button {
+  width: 24px;
+  height: 24px;
+  border: 1px solid #d7dde8;
+  background: #fff;
+  cursor: pointer;
+}
+
+.quantity-controls input {
+  width: 50px;
+  text-align: center;
+  border: 1px solid #d7dde8;
+  padding: 4px;
+}
+
+.edit-item-details textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #d7dde8;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.removable-ingredients {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.removable-ingredients label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.edit-order-note textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #d7dde8;
+  border-radius: 4px;
+  min-height: 60px;
+}
+
+.waiter-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 20px;
+  border-top: 1px solid #e4e8f0;
+}
+
+.waiter-modal-footer button {
+  padding: 8px 16px;
+  border: 1px solid #d7dde8;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font-weight: 950;
+}
+
+.waiter-modal-footer button:last-child {
+  background: #ff6b00;
+  color: #fff;
+  border-color: #ff6b00;
+}
+
+.disabled-action {
+  color: #697386;
+  font-size: 12px;
+  font-style: italic;
+}
+
+@media (min-width: 760px) {
+  .waiter-page {
+    padding: 24px;
+  }
+
+  .waiter-header {
+    grid-template-columns: minmax(0, 1fr) minmax(320px, auto);
+    align-items: center;
+    padding: 22px;
+  }
+
+  .waiter-header h1 {
+    font-size: 40px;
+  }
+  .waiter-page {
+    padding: 24px;
+  }
+
+  .waiter-header {
+    grid-template-columns: minmax(0, 1fr) minmax(320px, auto);
+    align-items: center;
+    padding: 22px;
+  }
+
+  .waiter-header h1 {
+    font-size: 40px;
+  }
+
+  .waiter-board {
+    grid-template-columns: 250px minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .waiter-filter-panel,
+  .waiter-orders-panel {
+    padding: 18px;
+  }
+
+  .waiter-filter-panel {
+    position: sticky;
+    top: 18px;
+  }
+
+  .waiter-status-tabs {
+    display: grid;
+    overflow: visible;
+    padding-bottom: 0;
+  }
+
+  .waiter-status-tabs button {
+    min-width: 0;
+  }
+
+  .waiter-order-list {
+    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+    align-items: start;
+  }
+
+  .waiter-bill-backdrop {
+    place-items: center;
+  }
+}
+
+@media (max-width: 520px) {
+  .waiter-header-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .waiter-panel-heading,
+  .waiter-order-top,
+  .waiter-order-meta,
+  .waiter-order-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .waiter-order-actions button {
+    width: 100%;
+  }
+}

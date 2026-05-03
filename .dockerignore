@@ -1,0 +1,10 @@
+bin/
+obj/
+.git/
+node_modules/
+publish/
+**/bin/
+**/obj/
+**/node_modules/
+**/publish/
+frontend/dist/
