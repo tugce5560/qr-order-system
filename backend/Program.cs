@@ -69,36 +69,18 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 builder.Services.AddCors(options =>
 {
-    string[] localAllowedOrigins =
-    [
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:5175",
-        "http://localhost:5176",
-        "http://localhost:5177",
-        "http://localhost:5178"
-    ];
-
-    var configuredAllowedOrigins = builder.Configuration
-        .GetSection("Cors:AllowedOrigins")
-        .Get<string[]>() ?? [];
-
-    var allowedOrigins = configuredAllowedOrigins
-        .Select(origin => origin.Trim())
-        .Where(origin => !string.IsNullOrWhiteSpace(origin) && origin != "*")
-        .Distinct(StringComparer.OrdinalIgnoreCase)
-        .ToArray();
-
-    if (allowedOrigins.Length == 0)
+    options.AddPolicy("AllowFrontend", policy =>
     {
-        allowedOrigins = localAllowedOrigins;
-    }
-
-    options.AddPolicy("AllowFrontend",
-        policy => policy
-            .WithOrigins(allowedOrigins)
+        policy
+            .WithOrigins(
+                "http://localhost:5173",
+                "http://localhost:5174",
+                "http://localhost:5175",
+                "https://qr-order-system-orpin.vercel.app"
+            )
             .AllowAnyHeader()
-            .AllowAnyMethod());
+            .AllowAnyMethod();
+    });
 });
 builder.Services.AddOpenApi();
 
