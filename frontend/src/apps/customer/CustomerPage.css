@@ -2186,21 +2186,29 @@
 }
 
 .customer-support-link {
-  width: 46px;
+  width: 52px;
+  min-width: 52px;
+  min-height: 44px;
+  align-items: center;
   justify-items: center;
-  padding: 6px;
+  align-content: center;
+  padding: 6px 5px;
+  border-color: rgba(240, 195, 122, 0.22);
+  background: rgba(240, 195, 122, 0.12);
 }
 
 .customer-support-link svg {
-  width: 17px;
-  height: 17px;
+  width: 18px;
+  height: 18px;
+  display: block;
   fill: currentColor;
 }
 
 .customer-support-link span {
   font-size: 9px;
   font-weight: 950;
-  line-height: 1;
+  line-height: 1.05;
+  text-align: center;
 }
 
 .customer-cart-link {
@@ -2381,7 +2389,8 @@
   }
 
   .customer-support-link {
-    width: 42px;
+    width: 48px;
+    min-width: 48px;
     padding-inline: 5px;
   }
 

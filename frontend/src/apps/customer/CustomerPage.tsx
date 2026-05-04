@@ -9,6 +9,7 @@ import {
 import type { OrderEventPayload } from "../../services/orderHub";
 import {
   createDemoOrder,
+  createDemoServiceRequest,
   getDemoOrders,
   subscribeDemoOrders,
 } from "../../services/demoRealtime";
@@ -721,12 +722,24 @@ export default function CustomerPage() {
         tableId: resolvedTable.tableId,
         type: "Waiter",
       });
+      createDemoServiceRequest({
+        restaurantId: resolvedTable.restaurantId,
+        tableId: resolvedTable.tableId,
+        tableNumber: resolvedTable.tableNumber,
+        type: "Waiter",
+      });
 
       setServiceMessage(
         `Garson çağrıldı. Masa ${resolvedTable.tableNumber} için ekibe haber verildi.`,
       );
       setIsHelpOpen(false);
     } catch {
+      createDemoServiceRequest({
+        restaurantId: resolvedTable.restaurantId,
+        tableId: resolvedTable.tableId,
+        tableNumber: resolvedTable.tableNumber,
+        type: "Waiter",
+      });
       setServiceMessage(
         `Garson çağrıldı. Masa ${resolvedTable.tableNumber} için ekibe haber verildi.`,
       );
@@ -758,12 +771,30 @@ export default function CustomerPage() {
           tableId: resolvedTable.tableId,
           type: "Bill",
         });
+        createDemoServiceRequest({
+          restaurantId: resolvedTable.restaurantId,
+          tableId: resolvedTable.tableId,
+          tableNumber: resolvedTable.tableNumber,
+          type: "Bill",
+        });
       } catch {
+        createDemoServiceRequest({
+          restaurantId: resolvedTable.restaurantId,
+          tableId: resolvedTable.tableId,
+          tableNumber: resolvedTable.tableNumber,
+          type: "Bill",
+        });
         setServiceMessage("Hesap isteği alındı. Ekibimize haber verildi.");
       }
       await loadTableOrders();
       setIsHelpOpen(false);
     } catch {
+      createDemoServiceRequest({
+        restaurantId: resolvedTable.restaurantId,
+        tableId: resolvedTable.tableId,
+        tableNumber: resolvedTable.tableNumber,
+        type: "Bill",
+      });
       setServiceMessage("Hesap isteği alındı. Ekibimize haber verildi.");
       setIsHelpOpen(false);
     } finally {

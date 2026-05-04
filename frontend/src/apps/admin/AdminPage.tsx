@@ -6,12 +6,17 @@ import api from "../../services/api";
 import {
   onOrderCreated,
   onOrderUpdated,
+  onServiceRequested,
   startOrderHubConnection,
 } from "../../services/orderHub";
-import type { OrderEventPayload } from "../../services/orderHub";
+import type { OrderEventPayload, ServiceRequestPayload } from "../../services/orderHub";
 import {
   getDemoOrders,
+  getDemoServiceRequests,
+  resolveDemoServiceRequest,
+  subscribeDemoServiceRequests,
   subscribeDemoOrders,
+  type DemoServiceRequest,
   type DemoOrder,
 } from "../../services/demoRealtime";
 import "./AdminPage.css";
@@ -151,6 +156,8 @@ type Order = {
   createdAt?: string;
   items: OrderItem[];
 };
+
+type AdminServiceRequest = DemoServiceRequest;
 
 type AdminSection =
   | "dashboard"
@@ -323,6 +330,29 @@ function mergeAdminOrdersWithDemo(orders: Order[]) {
     ...demoOrders,
     ...orders.filter((order) => !orderIds.has(order.id)),
   ];
+}
+
+function serviceRequestToAdminRequest(
+  request: ServiceRequestPayload,
+): AdminServiceRequest {
+  return {
+    id: Date.now(),
+    restaurantId: request.restaurantId,
+    tableId: request.tableId,
+    tableNumber: request.tableNumber,
+    type: request.type,
+    requestedAt: request.requestedAt,
+  };
+}
+
+function getServiceRequestLabel(type: AdminServiceRequest["type"]) {
+  return type === "Bill" ? "Hesap İsteği" : "Garson Çağrısı";
+}
+
+function getServiceRequestDescription(type: AdminServiceRequest["type"]) {
+  return type === "Bill"
+    ? "Müşteri hesap istiyor."
+    : "Müşteri garson çağırıyor.";
 }
 
 const demoAdminRestaurant: Restaurant = {
@@ -539,6 +569,9 @@ function AdminPage() {
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
   const [tableNumber, setTableNumber] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [serviceRequests, setServiceRequests] = useState<AdminServiceRequest[]>(
+    () => getDemoServiceRequests(),
+  );
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -655,6 +688,35 @@ function AdminPage() {
     });
   }
 
+  function mergeServiceRequest(request: AdminServiceRequest) {
+    setServiceRequests((currentRequests) =>
+      [
+        request,
+        ...currentRequests.filter(
+          (currentRequest) =>
+            !(
+              currentRequest.tableId === request.tableId &&
+              currentRequest.type === request.type
+            ),
+        ),
+      ].slice(0, 8),
+    );
+  }
+
+  function clearServiceRequest(request: AdminServiceRequest) {
+    resolveDemoServiceRequest(request.id);
+    setServiceRequests((currentRequests) =>
+      currentRequests.filter(
+        (currentRequest) =>
+          !(
+            currentRequest.id === request.id ||
+            (currentRequest.tableId === request.tableId &&
+              currentRequest.type === request.type)
+          ),
+      ),
+    );
+  }
+
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       void loadAdminData();
@@ -668,10 +730,14 @@ function AdminPage() {
 
     const unsubscribeOrderCreated = onOrderCreated(mergeRealtimeOrder);
     const unsubscribeOrderUpdated = onOrderUpdated(mergeRealtimeOrder);
+    const unsubscribeServiceRequested = onServiceRequested((request) => {
+      mergeServiceRequest(serviceRequestToAdminRequest(request));
+    });
 
     return () => {
       unsubscribeOrderCreated();
       unsubscribeOrderUpdated();
+      unsubscribeServiceRequested();
     };
   }, []);
 
@@ -684,6 +750,12 @@ function AdminPage() {
           ),
         ),
       );
+    });
+  }, []);
+
+  useEffect(() => {
+    return subscribeDemoServiceRequests((requests) => {
+      setServiceRequests(requests);
     });
   }, []);
 
@@ -990,6 +1062,10 @@ function AdminPage() {
             </div>
 
             <div className="admin-dashboard-grid">
+              <AdminServiceRequestsPanel
+                requests={serviceRequests}
+                onClear={clearServiceRequest}
+              />
               <TopProductsPanel analytics={analytics} />
               <OrdersPanel
                 orders={orders.slice(0, 5)}
@@ -1299,6 +1375,47 @@ function MetricCard({ label, value }: { label: string; value: number | string })
       <span>{label}</span>
       <strong>{value}</strong>
     </article>
+  );
+}
+
+function AdminServiceRequestsPanel({
+  requests,
+  onClear,
+}: {
+  requests: AdminServiceRequest[];
+  onClear: (request: AdminServiceRequest) => void;
+}) {
+  return (
+    <section className="admin-panel admin-service-panel">
+      <PanelHeading eyebrow="Müşteri talepleri" title="Destek Bildirimleri" />
+      {requests.length === 0 ? (
+        <EmptyState text="Bekleyen garson veya hesap isteği yok." />
+      ) : (
+        <div className="admin-service-list">
+          {requests.map((request) => (
+            <article
+              className={`admin-service-card request-${request.type.toLowerCase()}`}
+              key={`${request.id}-${request.type}`}
+            >
+              <div>
+                <span>Masa {request.tableNumber}</span>
+                <strong>{getServiceRequestLabel(request.type)}</strong>
+                <p>{getServiceRequestDescription(request.type)}</p>
+                <em>
+                  {new Intl.DateTimeFormat("tr-TR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }).format(new Date(request.requestedAt))}
+                </em>
+              </div>
+              <button type="button" onClick={() => onClear(request)}>
+                Tamamlandı
+              </button>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 

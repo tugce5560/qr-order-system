@@ -4,6 +4,7 @@ import {
   startOrderHubConnection,
   type NotificationPayload,
 } from "../services/orderHub";
+import { subscribeDemoServiceRequests } from "../services/demoRealtime";
 import { getCurrentUser } from "../services/auth";
 import "./NotificationCenter.css";
 
@@ -40,7 +41,7 @@ function NotificationCenter() {
 
     startOrderHubConnection();
 
-    const unsubscribe = onNotificationCreated((notification) => {
+    const unsubscribeNotification = onNotificationCreated((notification) => {
       if (!shouldShow(notification, user.role)) {
         return;
       }
@@ -54,7 +55,46 @@ function NotificationCenter() {
       ]);
     });
 
-    return unsubscribe;
+    const unsubscribeDemoRequests = subscribeDemoServiceRequests((requests) => {
+      if (
+        user.role !== "RestaurantAdmin" &&
+        user.role !== "SuperAdmin" &&
+        user.role !== "Waiter"
+      ) {
+        return;
+      }
+
+      const latestRequest = requests[0];
+
+      if (!latestRequest) {
+        return;
+      }
+
+      const isBillRequest = latestRequest.type === "Bill";
+
+      setNotifications((currentNotifications) => [
+        {
+          id: `DemoServiceRequest-${latestRequest.id}`,
+          type: isBillRequest ? "BillRequested" : "WaiterCallCreated",
+          title: isBillRequest ? "Hesap isteği" : "Garson çağrısı",
+          description: isBillRequest
+            ? "Müşteri hesap istiyor."
+            : "Müşteri garson çağırıyor.",
+          restaurantId: latestRequest.restaurantId,
+          tableId: latestRequest.tableId,
+          tableNumber: latestRequest.tableNumber,
+          createdAt: latestRequest.requestedAt,
+        },
+        ...currentNotifications.filter(
+          (notification) => notification.id !== `DemoServiceRequest-${latestRequest.id}`,
+        ),
+      ]);
+    });
+
+    return () => {
+      unsubscribeNotification();
+      unsubscribeDemoRequests();
+    };
   }, [user]);
 
   if (!user || notifications.length === 0) {

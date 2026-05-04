@@ -281,6 +281,81 @@
   font-size: 21px;
 }
 
+.admin-service-panel {
+  grid-column: 1 / -1;
+}
+
+.admin-service-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.admin-service-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgba(226, 232, 240, 0.12);
+  border-radius: 16px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.admin-service-card div {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.admin-service-card span {
+  color: #aebacc;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.admin-service-card strong {
+  color: #f8fafc;
+  font-size: 20px;
+  font-weight: 950;
+}
+
+.admin-service-card p {
+  margin: 0;
+  color: #dbe4ef;
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.admin-service-card em {
+  color: #99f6e4;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.admin-service-card button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 12px;
+  padding: 0 12px;
+  background: linear-gradient(135deg, #2dd4bf, #0f766e);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.admin-service-card.request-bill {
+  border-color: rgba(251, 146, 60, 0.26);
+  background: rgba(251, 146, 60, 0.09);
+}
+
+.admin-service-card.request-bill em {
+  color: #fed7aa;
+}
+
 .admin-ranked-list {
   display: grid;
   gap: 10px;
@@ -1238,7 +1313,8 @@
   .admin-data-table em,
   .admin-ranked-list em,
   .analytics-bars b,
-  .analytics-table-list b {
+  .analytics-table-list b,
+  .admin-service-card button {
     justify-self: start;
   }
 

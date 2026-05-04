@@ -23,8 +23,19 @@ export type DemoOrder = {
   items: DemoOrderItem[];
 };
 
+export type DemoServiceRequest = {
+  id: number;
+  restaurantId: number;
+  tableId: number;
+  tableNumber: number;
+  type: "Waiter" | "Bill";
+  requestedAt: string;
+};
+
 const demoOrdersStorageKey = "qrOrderDemoOrders";
 const demoOrdersEventName = "qr-order-demo-orders";
+const demoServiceRequestsStorageKey = "qrOrderDemoServiceRequests";
+const demoServiceRequestsEventName = "qr-order-demo-service-requests";
 
 function readOrders(): DemoOrder[] {
   try {
@@ -45,6 +56,30 @@ function readOrders(): DemoOrder[] {
 function writeOrders(orders: DemoOrder[]) {
   localStorage.setItem(demoOrdersStorageKey, JSON.stringify(orders.slice(0, 30)));
   window.dispatchEvent(new Event(demoOrdersEventName));
+}
+
+function readServiceRequests(): DemoServiceRequest[] {
+  try {
+    const rawRequests = localStorage.getItem(demoServiceRequestsStorageKey);
+
+    if (!rawRequests) {
+      return [];
+    }
+
+    const parsedRequests = JSON.parse(rawRequests) as DemoServiceRequest[];
+
+    return Array.isArray(parsedRequests) ? parsedRequests : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeServiceRequests(requests: DemoServiceRequest[]) {
+  localStorage.setItem(
+    demoServiceRequestsStorageKey,
+    JSON.stringify(requests.slice(0, 20)),
+  );
+  window.dispatchEvent(new Event(demoServiceRequestsEventName));
 }
 
 export function getDemoOrders() {
@@ -110,6 +145,59 @@ export function subscribeDemoOrders(callback: (orders: DemoOrder[]) => void) {
 
   return () => {
     window.removeEventListener(demoOrdersEventName, handleChange);
+    window.removeEventListener("storage", handleChange);
+  };
+}
+
+export function getDemoServiceRequests() {
+  return readServiceRequests();
+}
+
+export function createDemoServiceRequest(input: {
+  restaurantId: number;
+  tableId: number;
+  tableNumber: number;
+  type: "Waiter" | "Bill";
+}) {
+  const request: DemoServiceRequest = {
+    id: Date.now(),
+    restaurantId: input.restaurantId,
+    tableId: input.tableId,
+    tableNumber: input.tableNumber,
+    type: input.type,
+    requestedAt: new Date().toISOString(),
+  };
+
+  writeServiceRequests([
+    request,
+    ...readServiceRequests().filter(
+      (currentRequest) =>
+        !(
+          currentRequest.tableId === request.tableId &&
+          currentRequest.type === request.type
+        ),
+    ),
+  ]);
+
+  return request;
+}
+
+export function resolveDemoServiceRequest(requestId: number) {
+  writeServiceRequests(
+    readServiceRequests().filter((request) => request.id !== requestId),
+  );
+}
+
+export function subscribeDemoServiceRequests(
+  callback: (requests: DemoServiceRequest[]) => void,
+) {
+  const handleChange = () => callback(readServiceRequests());
+
+  window.addEventListener(demoServiceRequestsEventName, handleChange);
+  window.addEventListener("storage", handleChange);
+
+  return () => {
+    window.removeEventListener(demoServiceRequestsEventName, handleChange);
     window.removeEventListener("storage", handleChange);
   };
 }
