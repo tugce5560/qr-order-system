@@ -9,7 +9,10 @@ public class OrderHub : Hub
         var user = Context.User;
         if (user?.Identity?.IsAuthenticated == true)
         {
-            var restaurantId = user.FindFirst("RestaurantId")?.Value;
+            var restaurantId = user.Claims
+                .FirstOrDefault(c => string.Equals(c.Type, "RestaurantId", StringComparison.OrdinalIgnoreCase))
+                ?.Value;
+
             if (restaurantId != null)
             {
                 await Groups.AddToGroupAsync(Context.ConnectionId, $"restaurant:{restaurantId}");
