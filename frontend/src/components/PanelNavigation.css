@@ -155,3 +155,48 @@
     flex: 1 1 calc(50% - 8px);
   }
 }
+
+@media (max-width: 640px) {
+  .panel-layout {
+    overflow-x: hidden;
+  }
+
+  .panel-topbar {
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .panel-brand strong {
+    max-width: calc(100vw - 24px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .panel-nav {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    margin-inline: -10px;
+    overflow-x: auto;
+    padding: 0 10px 2px;
+    scrollbar-width: none;
+  }
+
+  .panel-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .panel-nav a {
+    flex: 0 0 auto;
+    min-height: 40px;
+    border-radius: 999px;
+    padding-inline: 14px;
+  }
+
+  .panel-logout {
+    width: 100%;
+    min-height: 42px;
+    border-radius: 999px;
+  }
+}

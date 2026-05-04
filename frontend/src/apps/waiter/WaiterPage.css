@@ -819,3 +819,88 @@
     width: 100%;
   }
 }
+
+@media (max-width: 640px) {
+  .waiter-page {
+    overflow-x: hidden;
+    padding: 12px 10px 20px;
+  }
+
+  .waiter-header,
+  .waiter-service-requests,
+  .waiter-filter-panel,
+  .waiter-orders-panel,
+  .waiter-order-card {
+    border-radius: 10px;
+  }
+
+  .waiter-header {
+    padding: 16px;
+  }
+
+  .waiter-header h1 {
+    font-size: 30px;
+    line-height: 1.05;
+  }
+
+  .waiter-board {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .waiter-status-tabs {
+    display: flex;
+    margin-inline: -14px;
+    overflow-x: auto;
+    padding: 0 14px 4px;
+    scrollbar-width: none;
+  }
+
+  .waiter-status-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .waiter-status-tabs button {
+    flex: 0 0 160px;
+  }
+
+  .waiter-request-list,
+  .waiter-order-list {
+    grid-template-columns: 1fr;
+  }
+
+  .waiter-request-card,
+  .waiter-order-card {
+    padding: 14px;
+  }
+
+  .waiter-bill-backdrop,
+  .waiter-modal-overlay {
+    align-items: end;
+    padding: 8px;
+  }
+
+  .waiter-bill-modal,
+  .waiter-modal {
+    width: 100%;
+    max-height: 88svh;
+    border-radius: 18px 18px 10px 10px;
+  }
+
+  .waiter-modal-body,
+  .waiter-modal-footer,
+  .waiter-modal-header {
+    padding-inline: 14px;
+  }
+
+  .edit-item-info,
+  .waiter-modal-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .waiter-modal-footer button {
+    width: 100%;
+    min-height: 42px;
+  }
+}

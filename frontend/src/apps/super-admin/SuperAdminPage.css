@@ -708,3 +708,82 @@
     gap: 8px;
   }
 }
+
+@media (max-width: 640px) {
+  .super-admin-shell {
+    min-width: 0;
+    overflow-x: hidden;
+  }
+
+  .super-admin-sidebar {
+    top: 0;
+    border-right: 0;
+    border-bottom: 1px solid #e5e7eb;
+    background: rgba(248, 250, 252, 0.96);
+    backdrop-filter: blur(12px);
+  }
+
+  .super-admin-nav {
+    margin-inline: -12px;
+    padding: 0 12px 2px;
+  }
+
+  .super-admin-nav button {
+    min-height: 42px;
+    border-radius: 999px;
+    padding-inline: 14px;
+    font-size: 13px;
+  }
+
+  .super-admin-main {
+    padding: 12px;
+  }
+
+  .super-admin-header h1,
+  .super-admin-section-heading h2 {
+    font-size: 24px;
+    line-height: 1.08;
+  }
+
+  .super-admin-header-actions button,
+  .super-admin-form-actions button,
+  .row-actions button {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .super-admin-panel,
+  .super-admin-metric-card,
+  .restaurant-card,
+  .subscription-grid article,
+  .users-grid article {
+    border-radius: 10px;
+    padding: 14px;
+  }
+
+  .restaurant-table,
+  .restaurant-grid,
+  .subscription-grid,
+  .users-grid,
+  .super-admin-overview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .row-actions,
+  .super-admin-form-actions,
+  .restaurant-card-header,
+  .subscription-grid article,
+  .users-grid article {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .revenue-chart {
+    min-width: 420px;
+  }
+
+  .revenue-chart-wrap,
+  .super-admin-data-table {
+    overflow-x: auto;
+  }
+}

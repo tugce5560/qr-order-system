@@ -659,3 +659,67 @@
     text-align: center;
   }
 }
+
+@media (max-width: 480px) {
+  .kitchen-shell {
+    padding: 10px 8px 18px;
+  }
+
+  .kitchen-hero,
+  .kitchen-board-summary,
+  .kitchen-order-card,
+  .kitchen-empty-state,
+  .kitchen-state-card {
+    border-radius: 10px;
+  }
+
+  .kitchen-hero {
+    padding: 16px;
+  }
+
+  .kitchen-hero h1 {
+    font-size: 30px;
+    line-height: 1.04;
+  }
+
+  .kitchen-hero-stats {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .kitchen-hero-stats span {
+    min-width: 0;
+    padding: 12px;
+  }
+
+  .kitchen-filter-bar {
+    display: flex;
+    gap: 8px;
+    margin-inline: -8px;
+    overflow-x: auto;
+    padding-inline: 8px;
+    scrollbar-width: none;
+  }
+
+  .kitchen-filter-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .kitchen-filter-bar button {
+    flex: 0 0 168px;
+  }
+
+  .kitchen-order-card-header,
+  .kitchen-order-items li {
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .kitchen-order-items li {
+    grid-template-columns: 1fr;
+  }
+
+  .kitchen-order-items li strong {
+    justify-self: start;
+  }
+}

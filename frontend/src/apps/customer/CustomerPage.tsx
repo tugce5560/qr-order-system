@@ -1104,13 +1104,13 @@ export default function CustomerPage() {
             <div className="customer-orders-header">
               <div>
                 <p>Canlı takip</p>
-                <h2 id="orders-title">Siparişlerim</h2>
+                <h2 id="orders-title">Sipariş Takibi</h2>
               </div>
               <button
                 className="drawer-close-button"
                 type="button"
                 onClick={() => setIsOrdersOpen(false)}
-                aria-label="Siparişlerimi kapat"
+                aria-label="Sipariş takibini kapat"
               >
                 X
               </button>

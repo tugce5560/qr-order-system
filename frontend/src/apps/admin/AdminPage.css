@@ -1119,6 +1119,112 @@
   }
 }
 
+@media (max-width: 640px) {
+  .admin-dashboard-shell {
+    min-width: 0;
+    overflow-x: hidden;
+  }
+
+  .admin-sidebar {
+    top: 0;
+    border-right: 0;
+    border-bottom: 1px solid #e5e7eb;
+    background: rgba(248, 250, 252, 0.96);
+    backdrop-filter: blur(12px);
+  }
+
+  .admin-nav {
+    margin-inline: -12px;
+    padding: 0 12px 2px;
+  }
+
+  .admin-nav button {
+    min-height: 42px;
+    border-radius: 999px;
+    padding-inline: 14px;
+    font-size: 13px;
+  }
+
+  .admin-main {
+    padding: 12px;
+  }
+
+  .admin-header,
+  .admin-section-heading,
+  .admin-panel-heading,
+  .admin-panel-heading.with-actions,
+  .admin-split-actions,
+  .admin-row-actions,
+  .qr-actions,
+  .admin-form-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-header h1,
+  .admin-section-heading h2 {
+    font-size: 24px;
+    line-height: 1.08;
+  }
+
+  .admin-header-actions,
+  .admin-row-actions,
+  .qr-actions,
+  .admin-form-actions {
+    width: 100%;
+  }
+
+  .admin-header-actions button,
+  .admin-row-actions button,
+  .qr-actions button,
+  .admin-form-actions button,
+  .admin-split-actions button {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .admin-panel,
+  .admin-product-card,
+  .admin-bill-card,
+  .admin-analytics-card {
+    border-radius: 10px;
+    padding: 14px;
+  }
+
+  .admin-product-grid,
+  .admin-card-list,
+  .admin-bill-list,
+  .admin-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-data-table {
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .admin-data-table article {
+    min-width: 0;
+  }
+
+  .admin-modal-backdrop {
+    align-items: end;
+    padding: 8px;
+  }
+
+  .admin-modal {
+    width: 100%;
+    max-height: 88svh;
+    border-radius: 18px 18px 10px 10px;
+  }
+
+  .admin-modal header,
+  .admin-modal li {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
 @media print {
   .panel-topbar,
   .admin-sidebar,
