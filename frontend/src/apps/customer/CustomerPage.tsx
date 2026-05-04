@@ -978,21 +978,18 @@ export default function CustomerPage() {
       </div>
 
       <section className="customer-rating-card" aria-labelledby="customer-rating-title">
+        <div className="customer-rating-icon" aria-hidden="true">
+          ★
+        </div>
         <div className="customer-rating-copy">
-          <p>Deneyim değerlendirmesi</p>
-          <h2 id="customer-rating-title">Hız, servis ve lezzeti puanlayın</h2>
+          <h2 id="customer-rating-title">Deneyiminizi değerlendirin</h2>
           <span>
             {hasRatedCurrentSession
-              ? "Geri bildiriminiz alındı. Teşekkür ederiz."
+              ? "Geri bildiriminiz alındı."
               : canRateOrder
-                ? "Siparişiniz servis edildi. Dilerseniz kısa bir değerlendirme bırakabilirsiniz."
-                : "Siparişiniz servis edildiğinde değerlendirme aktif olur."}
+                ? "İsterseniz hız, servis ve lezzet için kısa bir puan bırakın."
+                : "Sipariş servis edilince aktif olur."}
           </span>
-        </div>
-        <div className="customer-rating-metrics" aria-hidden="true">
-          <span>Hız</span>
-          <span>Servis</span>
-          <span>Lezzet</span>
         </div>
         <button
           type="button"
