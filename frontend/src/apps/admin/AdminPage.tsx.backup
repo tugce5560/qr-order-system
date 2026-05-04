@@ -487,6 +487,14 @@ function formatDateTime(value?: string | null) {
   }).format(new Date(value));
 }
 
+function formatDuration(seconds: number) {
+  if (seconds <= 0) {
+    return "0 dk";
+  }
+
+  return `${Math.round(seconds / 60)} dk`;
+}
+
 function getMonthLabel(month: number) {
   return new Intl.DateTimeFormat("tr-TR", { month: "short" }).format(
     new Date(Date.UTC(2026, month - 1, 1)),
@@ -582,6 +590,24 @@ function AdminPage() {
   const occupiedTableCount = new Set(activeOrders.map((order) => order.tableId))
     .size;
   const topProductName = analytics?.topProducts[0]?.name ?? "Veri yok";
+
+  const reports = useMemo(() => {
+    const monthlyRevenue = Math.max(analytics?.totalRevenue ?? 0, todayRevenue);
+
+    return {
+      dailySales: todayRevenue,
+      monthlySales: monthlyRevenue,
+      hourlySales: demoHourlyOrdersAnalytics,
+      monthlyChart: demoMonthlySalesAnalytics,
+      tableHistory: tables.map((table) => ({
+        tableNumber: table.tableNumber,
+        orders: orders.filter((order) => order.tableId === table.id).length,
+        revenue: orders
+          .filter((order) => order.tableId === table.id)
+          .reduce((sum, order) => sum + order.totalAmount, 0),
+      })),
+    };
+  }, [analytics?.totalRevenue, orders, tables, todayRevenue]);
 
   async function loadAdminData() {
     try {
@@ -1222,7 +1248,7 @@ function AdminPage() {
         {!isLoading && currentSection === "analytics" && (
           <section className="admin-section">
             <SectionHeading eyebrow="Performans & Analiz" title="Analytics & Raporlar" />
-            <AnalyticsDashboard summary={analytics} />
+            <AnalyticsDashboard summary={analytics} reports={reports} tables={tables} />
           </section>
         )}
 
@@ -1924,7 +1950,17 @@ function BillsPanel({
   );
 }
 
-function AnalyticsDashboard({ summary }: { summary: AnalyticsSummary | null }) {
+function AnalyticsDashboard({ summary, reports, tables }: { 
+  summary: AnalyticsSummary | null;
+  reports: {
+    dailySales: number;
+    monthlySales: number;
+    hourlySales: HourlyOrdersAnalytics[];
+    monthlyChart: MonthlySalesAnalytics[];
+    tableHistory: { tableNumber: number; orders: number; revenue: number }[];
+  };
+  tables: RestaurantTable[];
+}) {
   const [topProducts, setTopProducts] = useState<TopProductAnalytics[]>([]);
   const [tablePerformance, setTablePerformance] = useState<
     TablePerformanceAnalytics[]
@@ -2142,9 +2178,133 @@ function AnalyticsDashboard({ summary }: { summary: AnalyticsSummary | null }) {
         </section>
       </div>
     </>
-  );
-}
+function PlaceholderPanel({
+    const maxValue = Math.max(1, ...values);
+    const lastIndex = Math.max(1, values.length - 1);
 
+    return values.map((value, index) => ({
+      x: 16 + (index / lastIndex) * 288,
+      y: 128 - (value / maxValue) * 98,
+    }));
+  };
+  const hourlyLinePoints = getLinePoints(
+    reports.hourlySales.map((item) => item.revenue),
+  );
+  const monthlyLinePoints = getLinePoints(
+    reports.monthlyChart.map((item) => item.revenue),
+  );
+  const hourlyPointString = hourlyLinePoints
+    .map((point) => `${point.x},${point.y}`)
+    .join(" ");
+  const monthlyPointString = monthlyLinePoints
+    .map((point) => `${point.x},${point.y}`)
+    .join(" ");
+
+  return (
+    <>
+      <div className="admin-analytics">
+        <MetricCard label="Günlük satış özeti" value={formatCurrency(reports.dailySales)} />
+        <MetricCard label="Aylık satış özeti" value={formatCurrency(reports.monthlySales)} />
+        <MetricCard
+          label="Günlük sipariş"
+          value={`${reports.hourlySales.reduce((total, item) => total + item.orderCount, 0)} adet`}
+        />
+        <MetricCard
+          label="Ortalama hazırlık"
+          value={formatDuration(analytics?.avgPreparationTimeSeconds ?? 0)}
+        />
+      </div>
+      <div className="admin-dashboard-grid">
+        <TopProductsPanel analytics={analytics} />
+        <section className="admin-panel report-card">
+          <PanelHeading eyebrow="Bugün" title="Saat Bazlı Ciro" />
+          <div className="report-line-chart">
+            <svg viewBox="0 0 320 150" role="img" aria-label="Saat bazlı ciro çizgi grafiği">
+              <polyline points={hourlyPointString} />
+              {hourlyLinePoints.map((point, index) => (
+                <circle
+                  cx={point.x}
+                  cy={point.y}
+                  key={`${point.x}-${index}`}
+                  r="4"
+                />
+              ))}
+            </svg>
+            <div className="report-chart-labels">
+              {reports.hourlySales.map((item) => (
+                <span key={item.hour}>{String(item.hour).padStart(2, "0")}:00</span>
+              ))}
+            </div>
+            <strong>{formatCurrency(maxHourlyRevenue)}</strong>
+            <em>En yoğun saat cirosu</em>
+          </div>
+        </section>
+        <section className="admin-panel report-card wide">
+          <PanelHeading eyebrow="Masa performansı" title="Masa Bazlı Ciro ve Sipariş" />
+          {reports.tableHistory.length === 0 ? (
+            <EmptyState text="Masa bazlı geçmiş yok." />
+          ) : (
+            <div className="report-table-grid">
+              {reports.tableHistory.map((row) => (
+                <article key={row.tableNumber}>
+                  <div>
+                    <span>Masa {row.tableNumber}</span>
+                    <strong>{formatCurrency(row.revenue)}</strong>
+                    <em>{row.orders} sipariş</em>
+                  </div>
+                  <div className="analytics-bar-track">
+                    <i
+                      style={{
+                        width: `${Math.max(8, (row.revenue / maxTableRevenue) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+        <section className="admin-panel report-card wide">
+          <PanelHeading eyebrow="2026" title="Aylık Ciro Grafiği" />
+          <div className="report-line-chart report-line-chart-wide">
+            <svg viewBox="0 0 320 150" role="img" aria-label="Aylık ciro çizgi grafiği">
+              <polyline points={monthlyPointString} />
+              {monthlyLinePoints.map((point, index) => (
+                <circle
+                  cx={point.x}
+                  cy={point.y}
+                  key={`${point.x}-${index}`}
+                  r="4"
+                />
+              ))}
+            </svg>
+            <div className="report-chart-labels">
+              {reports.monthlyChart.map((item) => (
+                <span key={item.month}>{getMonthLabel(item.month)}</span>
+              ))}
+            </div>
+            <strong>{formatCurrency(maxMonthlyRevenue)}</strong>
+            <em>En yüksek aylık ciro</em>
+          </div>
+        </section>
+        <section className="admin-panel report-card">
+          <PanelHeading eyebrow="Masa geçmişi" title="Masa bazlı sipariş geçmişi" />
+          {reports.tableHistory.length === 0 ? (
+            <EmptyState text="Masa bazlı geçmiş yok." />
+          ) : (
+            <div className="admin-data-table">
+              {reports.tableHistory.map((row) => (
+                <article key={row.tableNumber}>
+                  <span>Masa {row.tableNumber}</span>
+                  <strong>{row.orders} sipariş</strong>
+                  <b>{formatCurrency(row.revenue)}</b>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+    </>
 function PlaceholderPanel({
   eyebrow,
   title,
