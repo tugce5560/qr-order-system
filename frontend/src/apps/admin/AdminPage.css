@@ -386,15 +386,17 @@
 
 .admin-bill-list {
   display: grid;
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 16px;
 }
 
 .admin-bill-card {
   display: grid;
-  gap: 14px;
+  align-content: start;
+  gap: 15px;
   border: 1px solid #edf1f5;
-  border-radius: 8px;
-  padding: 14px;
+  border-radius: 14px;
+  padding: 16px;
   background: #f8fafc;
 }
 
@@ -449,6 +451,20 @@
 .admin-bill-items {
   border-block: 1px solid var(--admin-line);
   padding-block: 12px;
+}
+
+.admin-bill-items div,
+.admin-bill-totals div {
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.admin-bill-items small {
+  display: block;
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .admin-bill-totals div:last-child {
@@ -1331,12 +1347,22 @@
   color: #778397;
 }
 
+.admin-form label,
+.admin-form label span,
+.admin-toggle,
+.admin-toggle span {
+  color: #e5e7eb;
+}
+
 .admin-data-table article,
 .admin-card-list article,
 .admin-modal li,
 .admin-modal dl div,
 .admin-product-card dl div,
-.admin-bill-items li {
+.admin-bill-items li,
+.admin-bill-items div,
+.admin-bill-totals div,
+.qr-code-box {
   border-color: var(--admin-line);
   background: rgba(255, 255, 255, 0.045);
 }
@@ -1353,10 +1379,16 @@
 
 .admin-header-actions button:first-child,
 .admin-form-actions button:last-child,
+.admin-form button[type="submit"],
 .admin-row-actions button:first-child,
 .admin-split-actions button:first-child {
   background: linear-gradient(135deg, #2dd4bf, #0f766e);
   color: #ffffff;
+}
+
+.admin-form button[type="submit"] {
+  min-height: 44px;
+  border: 0;
 }
 
 @media (max-width: 640px) {
@@ -1376,10 +1408,13 @@
 .admin-modal li span,
 .admin-bill-card-head span,
 .admin-bill-items span,
+.admin-bill-items small,
 .analytics-bars span,
 .analytics-table-list span,
 .analytics-month-chart span,
 .analytics-hour-chart span,
+.qr-card-top p,
+.qr-url,
 .admin-product-card dt,
 .admin-modal dt,
 .admin-bill-totals dt {
@@ -1389,6 +1424,8 @@
 .admin-analytics-card strong,
 .admin-product-card dd,
 .admin-modal dd,
+.qr-card h3,
+.admin-bill-items b,
 .admin-bill-totals dd,
 .analytics-bars b,
 .analytics-table-list b,
@@ -1406,6 +1443,32 @@
   border: 1px solid rgba(45, 212, 191, 0.26);
   background: rgba(45, 212, 191, 0.12);
   color: #99f6e4;
+}
+
+.admin-bill-card {
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(17, 24, 39, 0.94));
+}
+
+.admin-bill-card-head em {
+  border: 1px solid rgba(251, 146, 60, 0.32);
+  background: rgba(251, 146, 60, 0.13);
+  color: #fed7aa;
+}
+
+.admin-bill-totals div:last-child {
+  border-color: rgba(45, 212, 191, 0.28);
+  background: rgba(45, 212, 191, 0.08);
+}
+
+.admin-bill-totals div:last-child dt,
+.admin-bill-totals div:last-child dd {
+  color: #99f6e4;
+}
+
+.qr-card {
+  border-color: var(--admin-line);
+  background: rgba(23, 30, 40, 0.94);
 }
 
 .admin-error {

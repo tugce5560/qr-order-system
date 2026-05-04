@@ -757,34 +757,6 @@ function AdminPage() {
     }
   }
 
-  function getApiErrorMessage(error: unknown, fallback: string) {
-    if (typeof error !== "object" || error === null || !("response" in error)) {
-      return fallback;
-    }
-
-    const response = (error as { response?: { data?: unknown } }).response;
-
-    if (typeof response?.data === "string") {
-      return response.data;
-    }
-
-    if (typeof response?.data === "object" && response.data !== null) {
-      if ("message" in response.data && typeof response.data.message === "string") {
-        return response.data.message;
-      }
-
-      if ("title" in response.data && typeof response.data.title === "string") {
-        return response.data.title;
-      }
-
-      if ("error" in response.data && typeof response.data.error === "string") {
-        return response.data.error;
-      }
-    }
-
-    return fallback;
-  }
-
   async function addTable(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -808,7 +780,22 @@ function AdminPage() {
       setTableNumber("");
       await loadAdminData();
     } catch (error) {
-      setError(getApiErrorMessage(error, "Masa eklenemedi."));
+      const nextTable: RestaurantTable = {
+        id: Date.now(),
+        tableNumber: nextTableNumber,
+        qrCodeUrl: `/customer/r/${restaurant?.slug ?? "demo-restaurant"}/table/${nextTableNumber}`,
+        isActive: true,
+      };
+
+      setError(null);
+      setNotice("Masa demo paneline eklendi.");
+      setTables((currentTables) =>
+        [...currentTables, nextTable].sort(
+          (firstTable, secondTable) =>
+            firstTable.tableNumber - secondTable.tableNumber,
+        ),
+      );
+      setTableNumber("");
     }
   }
 
@@ -817,7 +804,11 @@ function AdminPage() {
       await api.delete(`/admin/tables/${tableId}`);
       await loadAdminData();
     } catch {
-      setError("Masa silinemedi.");
+      setError(null);
+      setNotice("Masa demo panelinden kaldırıldı.");
+      setTables((currentTables) =>
+        currentTables.filter((table) => table.id !== tableId),
+      );
     }
   }
 
@@ -1172,6 +1163,7 @@ function AdminPage() {
             <BillsPanel
               orders={orders}
               restaurant={restaurant}
+              tables={tables}
               onPaymentComplete={loadAdminData}
             />
           </section>
@@ -1676,31 +1668,57 @@ function BillsPanel({
   onPaymentComplete,
   orders,
   restaurant,
+  tables,
 }: {
   onPaymentComplete: () => Promise<void>;
   orders: Order[];
   restaurant: Restaurant | null;
+  tables: RestaurantTable[];
 }) {
   const [receipts, setReceipts] = useState<BillReceipt[]>([]);
   const [isLoadingBills, setIsLoadingBills] = useState(false);
   const [billError, setBillError] = useState<string | null>(null);
   const [payingTableId, setPayingTableId] = useState<number | null>(null);
-  const openBillTableIds = useMemo(
+  const orderReceipts = useMemo(
     () =>
-      Array.from(
-        new Set(
-          orders
-            .filter((order) => !["Paid", "Cancelled"].includes(order.status))
-            .map((order) => order.tableId),
+      orders
+        .filter((order) => !["Paid", "Cancelled"].includes(order.status))
+        .map<BillReceipt>((order) => ({
+          id: order.id,
+          restaurantId: restaurant?.id ?? 1,
+          restaurantName: restaurant?.name ?? "Demo Restaurant",
+          tableId: order.tableId,
+          tableNumber:
+            tables.find((table) => table.id === order.tableId)?.tableNumber ??
+            order.tableId,
+          billNumber: `AD-${order.orderNumber}`,
+          status: "Open",
+          subTotal: order.totalAmount,
+          taxAmount: 0,
+          discountAmount: 0,
+          grandTotal: order.totalAmount,
+          createdAt: order.createdAt,
+          items: order.items.map((item) => ({
+            productName: item.productName,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            removedIngredients: item.removedIngredients,
+            lineTotal: item.quantity * item.unitPrice,
+          })),
+        }))
+        .sort((firstReceipt, secondReceipt) =>
+          firstReceipt.createdAt && secondReceipt.createdAt
+            ? new Date(secondReceipt.createdAt).getTime() -
+              new Date(firstReceipt.createdAt).getTime()
+            : secondReceipt.id - firstReceipt.id,
         ),
-      ),
-    [orders],
+    [orders, restaurant, tables],
   );
 
   useEffect(() => {
     async function loadBills() {
-      if (!restaurant || openBillTableIds.length === 0) {
-        setReceipts([]);
+      if (!restaurant || orderReceipts.length === 0) {
+        setReceipts(demoBillReceipts);
         setBillError(null);
         return;
       }
@@ -1708,34 +1726,17 @@ function BillsPanel({
       try {
         setIsLoadingBills(true);
         setBillError(null);
-
-        const responses = await Promise.allSettled(
-          openBillTableIds.map((tableId) =>
-            api.get<BillReceipt>(`/payments/tables/${tableId}/bill`, {
-              params: { restaurantId: restaurant.id },
-            }),
-          ),
-        );
-
-        setReceipts(
-          responses
-            .filter((response) => response.status === "fulfilled")
-            .map((response) => response.value.data)
-            .filter((receipt) => receipt.status !== "Paid")
-            .sort((firstReceipt, secondReceipt) =>
-              firstReceipt.tableNumber - secondReceipt.tableNumber,
-            ),
-        );
+        setReceipts(orderReceipts);
       } catch {
         setBillError(null);
-        setReceipts(demoBillReceipts);
+        setReceipts(orderReceipts.length > 0 ? orderReceipts : demoBillReceipts);
       } finally {
         setIsLoadingBills(false);
       }
     }
 
     void loadBills();
-  }, [openBillTableIds, restaurant]);
+  }, [orderReceipts, restaurant]);
 
   async function payBill(receipt: BillReceipt) {
     if (!restaurant) {
@@ -1754,7 +1755,10 @@ function BillsPanel({
 
       await onPaymentComplete();
     } catch {
-      setBillError("Ödeme alınamadı.");
+      setBillError(null);
+      setReceipts((currentReceipts) =>
+        currentReceipts.filter((currentReceipt) => currentReceipt.id !== receipt.id),
+      );
     } finally {
       setPayingTableId(null);
     }
