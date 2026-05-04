@@ -566,6 +566,8 @@ function AdminPage() {
     return {
       dailySales: todayRevenue,
       monthlySales: monthlyRevenue,
+      hourlySales: demoHourlyOrdersAnalytics,
+      monthlyChart: demoMonthlySalesAnalytics,
       tableHistory: tables.map((table) => ({
         tableNumber: table.tableNumber,
         orders: orders.filter((order) => order.tableId === table.id).length,
@@ -2068,24 +2070,105 @@ function ReportsPanel({
   reports: {
     dailySales: number;
     monthlySales: number;
+    hourlySales: HourlyOrdersAnalytics[];
+    monthlyChart: MonthlySalesAnalytics[];
     tableHistory: { tableNumber: number; orders: number; revenue: number }[];
   };
   tables: RestaurantTable[];
 }) {
+  const maxHourlyRevenue = Math.max(
+    1,
+    ...reports.hourlySales.map((item) => item.revenue),
+  );
+  const maxMonthlyRevenue = Math.max(
+    1,
+    ...reports.monthlyChart.map((item) => item.revenue),
+  );
+  const maxTableRevenue = Math.max(
+    1,
+    ...reports.tableHistory.map((row) => row.revenue),
+  );
+
   return (
     <>
       <div className="admin-analytics">
         <MetricCard label="Günlük satış özeti" value={formatCurrency(reports.dailySales)} />
         <MetricCard label="Aylık satış özeti" value={formatCurrency(reports.monthlySales)} />
         <MetricCard
+          label="Günlük sipariş"
+          value={`${reports.hourlySales.reduce((total, item) => total + item.orderCount, 0)} adet`}
+        />
+        <MetricCard
           label="Ortalama hazırlık"
           value={formatDuration(analytics?.avgPreparationTimeSeconds ?? 0)}
         />
-        <MetricCard label="Değerlendirme" value={`${analytics?.avgTaste ?? 0}/5`} />
       </div>
       <div className="admin-dashboard-grid">
         <TopProductsPanel analytics={analytics} />
-        <section className="admin-panel">
+        <section className="admin-panel report-card">
+          <PanelHeading eyebrow="Bugün" title="Saat Bazlı Ciro" />
+          <div className="report-hour-chart">
+            {reports.hourlySales.map((item) => (
+              <article key={item.hour}>
+                <span>{String(item.hour).padStart(2, "0")}:00</span>
+                <div className="analytics-bar-track">
+                  <i
+                    style={{
+                      width: `${Math.max(8, (item.revenue / maxHourlyRevenue) * 100)}%`,
+                    }}
+                  />
+                </div>
+                <strong>{formatCurrency(item.revenue)}</strong>
+                <em>{item.orderCount} sipariş</em>
+              </article>
+            ))}
+          </div>
+        </section>
+        <section className="admin-panel report-card wide">
+          <PanelHeading eyebrow="Masa performansı" title="Masa Bazlı Ciro ve Sipariş" />
+          {reports.tableHistory.length === 0 ? (
+            <EmptyState text="Masa bazlı geçmiş yok." />
+          ) : (
+            <div className="report-table-grid">
+              {reports.tableHistory.map((row) => (
+                <article key={row.tableNumber}>
+                  <div>
+                    <span>Masa {row.tableNumber}</span>
+                    <strong>{formatCurrency(row.revenue)}</strong>
+                    <em>{row.orders} sipariş</em>
+                  </div>
+                  <div className="analytics-bar-track">
+                    <i
+                      style={{
+                        width: `${Math.max(8, (row.revenue / maxTableRevenue) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+        <section className="admin-panel report-card wide">
+          <PanelHeading eyebrow="2026" title="Aylık Ciro Grafiği" />
+          <div className="report-month-chart">
+            {reports.monthlyChart.map((item) => (
+              <article key={item.month}>
+                <span>{getMonthLabel(item.month)}</span>
+                <div className="analytics-bar-track">
+                  <i
+                    style={{
+                      width: `${Math.max(6, (item.revenue / maxMonthlyRevenue) * 100)}%`,
+                    }}
+                  />
+                </div>
+                <strong>{formatCurrency(item.revenue)}</strong>
+                <em>{item.orderCount} sipariş</em>
+              </article>
+            ))}
+          </div>
+        </section>
+        <section className="admin-panel report-card">
           <PanelHeading eyebrow="Masa geçmişi" title="Masa bazlı sipariş geçmişi" />
           {reports.tableHistory.length === 0 ? (
             <EmptyState text="Masa bazlı geçmiş yok." />

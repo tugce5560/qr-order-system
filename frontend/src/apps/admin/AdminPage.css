@@ -629,6 +629,69 @@
   grid-template-columns: 72px minmax(120px, 1fr) minmax(100px, auto) 90px;
 }
 
+.report-card.wide {
+  grid-column: 1 / -1;
+}
+
+.report-hour-chart,
+.report-table-grid,
+.report-month-chart {
+  display: grid;
+  gap: 12px;
+}
+
+.report-hour-chart article,
+.report-table-grid article,
+.report-month-chart article {
+  display: grid;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(226, 232, 240, 0.12);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.report-hour-chart article,
+.report-month-chart article {
+  grid-template-columns: minmax(62px, 0.5fr) minmax(140px, 1fr) auto auto;
+}
+
+.report-table-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.report-table-grid article {
+  align-content: space-between;
+  min-height: 128px;
+}
+
+.report-table-grid article > div:first-child {
+  display: grid;
+  gap: 7px;
+}
+
+.report-hour-chart span,
+.report-table-grid span,
+.report-month-chart span,
+.report-hour-chart em,
+.report-table-grid em,
+.report-month-chart em {
+  color: #aebacc;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.report-hour-chart strong,
+.report-table-grid strong,
+.report-month-chart strong {
+  color: #f8fafc;
+  font-size: 14px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
 .admin-form {
   display: grid;
   gap: 14px;
@@ -1108,6 +1171,8 @@
   .analytics-bars article,
   .analytics-table-list article,
   .analytics-month-chart article,
+  .report-hour-chart article,
+  .report-month-chart article,
   .admin-modal dl {
     grid-template-columns: 1fr;
   }
