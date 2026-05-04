@@ -12,10 +12,14 @@ import type {
 } from "../../services/orderHub";
 import {
   getDemoOrders,
+  getDemoServiceRequests,
+  resolveDemoServiceRequest,
   subscribeDemoOrders,
+  subscribeDemoServiceRequests,
   updateDemoOrder,
   updateDemoOrderStatus,
   type DemoOrder,
+  type DemoServiceRequest,
 } from "../../services/demoRealtime";
 import "./WaiterPage.css";
 
@@ -55,6 +59,16 @@ type WaiterCall = {
   status: string;
   message?: string | null;
   createdAt: string;
+};
+
+type PendingTableRequest = {
+  key: string;
+  source: "hub" | "demo" | "waiterCall";
+  id?: number;
+  tableId: number;
+  tableNumber: number;
+  type: "Waiter" | "Bill";
+  requestedAt: string;
 };
 
 type OrderStatus = "New" | "Preparing" | "Ready" | "Served" | "Paid";
@@ -224,6 +238,9 @@ function WaiterPage() {
   const [serviceRequests, setServiceRequests] = useState<
     ServiceRequestPayload[]
   >([]);
+  const [demoServiceRequests, setDemoServiceRequests] = useState<
+    DemoServiceRequest[]
+  >([]);
   const [waiterCalls, setWaiterCalls] = useState<WaiterCall[]>([]);
   const [editingOrder, setEditingOrder] = useState<WaiterOrder | null>(null);
   const [editItems, setEditItems] = useState<EditOrderItem[]>([]);
@@ -344,6 +361,14 @@ function WaiterPage() {
           ),
         ),
       );
+    });
+  }, []);
+
+  useEffect(() => {
+    setDemoServiceRequests(getDemoServiceRequests());
+
+    return subscribeDemoServiceRequests((requests) => {
+      setDemoServiceRequests(requests);
     });
   }, []);
 
@@ -562,7 +587,15 @@ function WaiterPage() {
     return type === "Bill" ? "Hesap istiyor" : "Garson çağırıyor";
   }
 
-  function clearServiceRequest(request: ServiceRequestPayload) {
+  function getServiceRequestDescription(type: ServiceRequestPayload["type"]) {
+    return type === "Bill"
+      ? "Müşteri hesap istiyor."
+      : "Müşteri garson çağırıyor.";
+  }
+
+  function clearServiceRequest(
+    request: Pick<ServiceRequestPayload, "tableId" | "type">,
+  ) {
     setServiceRequests((currentRequests) =>
       currentRequests.filter(
         (currentRequest) =>
@@ -575,10 +608,85 @@ function WaiterPage() {
   }
 
   async function resolveWaiterCall(callId: number) {
-    await api.post(`/waiter-calls/${callId}/resolve`);
+    try {
+      await api.post(`/waiter-calls/${callId}/resolve`);
+    } catch {
+      setError(null);
+    }
+
     setWaiterCalls((currentCalls) =>
       currentCalls.filter((call) => call.id !== callId),
     );
+  }
+
+  const pendingTableRequests = useMemo(() => {
+    const requestMap = new Map<string, PendingTableRequest>();
+    const addRequest = (request: PendingTableRequest) => {
+      const existingRequest = requestMap.get(request.key);
+      const existingTime = existingRequest?.requestedAt
+        ? new Date(existingRequest.requestedAt).getTime()
+        : 0;
+      const requestTime = new Date(request.requestedAt).getTime();
+
+      if (!existingRequest || requestTime >= existingTime) {
+        requestMap.set(request.key, request);
+      }
+    };
+
+    serviceRequests.forEach((request) =>
+      addRequest({
+        key: `${request.tableId}-${request.type}`,
+        source: "hub",
+        tableId: request.tableId,
+        tableNumber: request.tableNumber,
+        type: request.type,
+        requestedAt: request.requestedAt,
+      }),
+    );
+
+    demoServiceRequests.forEach((request) =>
+      addRequest({
+        key: `${request.tableId}-${request.type}`,
+        source: "demo",
+        id: request.id,
+        tableId: request.tableId,
+        tableNumber: request.tableNumber,
+        type: request.type,
+        requestedAt: request.requestedAt,
+      }),
+    );
+
+    waiterCalls.forEach((call) =>
+      addRequest({
+        key: `${call.tableId}-Waiter`,
+        source: "waiterCall",
+        id: call.id,
+        tableId: call.tableId,
+        tableNumber: call.tableNumber,
+        type: "Waiter",
+        requestedAt: call.createdAt,
+      }),
+    );
+
+    return Array.from(requestMap.values()).sort(
+      (firstRequest, secondRequest) =>
+        new Date(secondRequest.requestedAt).getTime() -
+        new Date(firstRequest.requestedAt).getTime(),
+    );
+  }, [demoServiceRequests, serviceRequests, waiterCalls]);
+
+  function resolvePendingTableRequest(request: PendingTableRequest) {
+    if (request.source === "waiterCall" && request.id !== undefined) {
+      void resolveWaiterCall(request.id);
+      return;
+    }
+
+    if (request.source === "demo" && request.id !== undefined) {
+      resolveDemoServiceRequest(request.id);
+      return;
+    }
+
+    clearServiceRequest(request);
   }
 
   return (
@@ -602,60 +710,33 @@ function WaiterPage() {
       </header>
 
       <>
-          {serviceRequests.length > 0 && (
-            <section className="waiter-service-requests">
-              <div className="waiter-panel-heading">
-                <div>
-                  <p>Müşteri talepleri</p>
-                  <h2>Servis Kuyruğu</h2>
-                </div>
-                <span>{serviceRequests.length} aktif</span>
-              </div>
-
-              <div className="waiter-request-list">
-                {serviceRequests.map((request) => (
-                  <article
-                    className={`waiter-request-card request-${request.type.toLowerCase()}`}
-                    key={`${request.tableId}-${request.type}`}
-                  >
-                    <div>
-                      <strong>Masa {request.tableNumber}</strong>
-                      <span>{getServiceRequestLabel(request.type)}</span>
-                    </div>
-                    <button
-                      className="waiter-request-clear"
-                      type="button"
-                      onClick={() => clearServiceRequest(request)}
-                      aria-label="Servis talebini kapat"
-                    >
-                      OK
-                    </button>
-                  </article>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {waiterCalls.length > 0 && (
+          {pendingTableRequests.length > 0 && (
             <section className="waiter-service-requests">
               <div className="waiter-panel-heading">
                 <div>
                   <p>Garson çağrıları</p>
                   <h2>Bekleyen Masalar</h2>
                 </div>
-                <span>{waiterCalls.length} aktif</span>
+                <span>{pendingTableRequests.length} aktif</span>
               </div>
               <div className="waiter-request-list">
-                {waiterCalls.map((call) => (
-                  <article className="waiter-request-card" key={call.id}>
+                {pendingTableRequests.map((request) => (
+                  <article
+                    className={`waiter-request-card request-${request.type.toLowerCase()}`}
+                    key={request.key}
+                  >
                     <div>
-                      <strong>Masa {call.tableNumber}</strong>
-                      <span>{formatOrderTime(call.createdAt)}</span>
+                      <strong>Masa {request.tableNumber}</strong>
+                      <span>{getServiceRequestLabel(request.type)}</span>
+                      <small>
+                        {getServiceRequestDescription(request.type)} ·{" "}
+                        {formatOrderTime(request.requestedAt)}
+                      </small>
                     </div>
                     <button
                       className="waiter-request-clear"
                       type="button"
-                      onClick={() => resolveWaiterCall(call.id)}
+                      onClick={() => resolvePendingTableRequest(request)}
                     >
                       Çözüldü
                     </button>
