@@ -1,7 +1,9 @@
 .waiter-page {
   width: 100%;
+  max-width: 100vw;
   min-height: 100svh;
   padding: 16px;
+  overflow-x: hidden;
   box-sizing: border-box;
   background: #f5f7fb;
   color: #14171f;
@@ -40,6 +42,7 @@
 .waiter-service-requests,
 .waiter-filter-panel,
 .waiter-orders-panel {
+  min-width: 0;
   border: 1px solid #e4e8f0;
   border-radius: 8px;
   background: #fff;
@@ -167,6 +170,7 @@
 .waiter-board {
   display: grid;
   gap: 16px;
+  min-width: 0;
 }
 
 .waiter-filter-panel,
@@ -207,15 +211,15 @@
 }
 
 .waiter-status-tabs {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 10px;
-  overflow-x: auto;
-  padding-bottom: 2px;
-  scrollbar-width: thin;
+  overflow: visible;
+  padding-bottom: 0;
 }
 
 .waiter-status-tabs button {
-  min-width: 156px;
+  min-width: 0;
   min-height: 54px;
   display: flex;
   align-items: center;
@@ -767,23 +771,14 @@
     font-size: 40px;
   }
 
-  .waiter-board {
-    grid-template-columns: 250px minmax(0, 1fr);
-    align-items: start;
-  }
-
   .waiter-filter-panel,
   .waiter-orders-panel {
     padding: 18px;
   }
 
-  .waiter-filter-panel {
-    position: sticky;
-    top: 18px;
-  }
-
   .waiter-status-tabs {
     display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
     overflow: visible;
     padding-bottom: 0;
   }
@@ -804,6 +799,10 @@
 
 @media (max-width: 520px) {
   .waiter-header-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .waiter-status-tabs {
     grid-template-columns: 1fr;
   }
 
@@ -849,19 +848,16 @@
   }
 
   .waiter-status-tabs {
-    display: flex;
-    margin-inline: -14px;
-    overflow-x: auto;
-    padding: 0 14px 4px;
-    scrollbar-width: none;
-  }
-
-  .waiter-status-tabs::-webkit-scrollbar {
-    display: none;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-inline: 0;
+    overflow: visible;
+    padding: 0;
   }
 
   .waiter-status-tabs button {
-    flex: 0 0 160px;
+    min-height: 50px;
+    padding-inline: 10px;
   }
 
   .waiter-request-list,

@@ -63,10 +63,10 @@
   flex-wrap: wrap;
   justify-content: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .panel-nav a,
-.panel-logout,
 .app-state-panel a {
   display: inline-flex;
   align-items: center;
@@ -89,12 +89,6 @@
   color: #ffffff;
 }
 
-.panel-logout {
-  flex: 0 0 auto;
-  cursor: pointer;
-}
-
-.panel-logout:hover,
 .panel-nav a:hover,
 .app-state-panel a:hover {
   border-color: #111827;
@@ -142,17 +136,17 @@
 
 @media (max-width: 760px) {
   .panel-topbar {
-    align-items: stretch;
+    align-items: flex-start;
     flex-direction: column;
   }
 
   .panel-nav {
+    width: 100%;
     justify-content: flex-start;
   }
 
-  .panel-nav a,
-  .panel-logout {
-    flex: 1 1 calc(50% - 8px);
+  .panel-nav a {
+    flex: 0 1 auto;
   }
 }
 
@@ -178,6 +172,7 @@
     flex-wrap: nowrap;
     justify-content: flex-start;
     margin-inline: -10px;
+    max-width: calc(100vw - 20px);
     overflow-x: auto;
     padding: 0 10px 2px;
     scrollbar-width: none;
@@ -189,16 +184,12 @@
 
   .panel-nav a {
     flex: 0 0 auto;
-    min-height: 40px;
+    min-height: 36px;
     border-radius: 999px;
-    padding-inline: 14px;
+    padding-inline: 13px;
+    font-size: 13px;
   }
 
-  .panel-logout {
-    width: 100%;
-    min-height: 42px;
-    border-radius: 999px;
-  }
 }
 
 /* Dark responsive shell for all staff/owner panels. */
@@ -222,8 +213,7 @@
   color: #f8fafc;
 }
 
-.panel-nav a,
-.panel-logout {
+.panel-nav a {
   border-color: rgba(226, 232, 240, 0.12);
   background: rgba(255, 255, 255, 0.06);
   color: #e5e7eb;
@@ -235,7 +225,6 @@
   color: #fff;
 }
 
-.panel-logout:hover,
 .panel-nav a:hover {
   border-color: rgba(45, 212, 191, 0.48);
 }

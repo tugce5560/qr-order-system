@@ -9,7 +9,6 @@ import {
   startOrderHubConnection,
 } from "../../services/orderHub";
 import type { OrderEventPayload } from "../../services/orderHub";
-import { clearAuth } from "../../services/auth";
 import "./AdminPage.css";
 
 type Category = {
@@ -627,11 +626,6 @@ function AdminPage() {
     link.click();
   }
 
-  function logout() {
-    clearAuth();
-    navigate("/admin");
-  }
-
   async function saveTheme(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -734,9 +728,6 @@ function AdminPage() {
           <div className="admin-header-actions">
             <button type="button" onClick={loadAdminData}>
               Yenile
-            </button>
-            <button type="button" onClick={logout}>
-              Çıkış
             </button>
           </div>
         </header>

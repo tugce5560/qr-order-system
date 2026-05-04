@@ -1,7 +1,6 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import type { ReactNode } from "react";
 import {
-  clearAuth,
   getCurrentUser,
   getDefaultRouteForRole,
   type UserRole,
@@ -48,13 +47,7 @@ const panelLinks: PanelLink[] = [
 ];
 
 function PanelNavigation({ children }: PanelNavigationProps) {
-  const navigate = useNavigate();
   const user = getCurrentUser();
-
-  function logout() {
-    clearAuth();
-    navigate("/admin", { replace: true });
-  }
 
   if (!user) {
     return <>{children}</>;
@@ -88,9 +81,6 @@ function PanelNavigation({ children }: PanelNavigationProps) {
             ))}
         </nav>
 
-        <button className="panel-logout" type="button" onClick={logout}>
-          Logout
-        </button>
       </header>
 
       {children}
