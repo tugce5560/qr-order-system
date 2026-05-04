@@ -1450,6 +1450,29 @@
     linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(17, 24, 39, 0.94));
 }
 
+.admin-ranked-list li {
+  border-color: rgba(226, 232, 240, 0.12);
+  background:
+    linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.9));
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.2);
+}
+
+.admin-ranked-list span {
+  border: 1px solid rgba(45, 212, 191, 0.32);
+  background: rgba(45, 212, 191, 0.14);
+  color: #99f6e4;
+}
+
+.admin-ranked-list strong {
+  color: #f8fafc;
+}
+
+.admin-ranked-list em {
+  border: 1px solid rgba(34, 197, 94, 0.28);
+  background: rgba(34, 197, 94, 0.12);
+  color: #bbf7d0;
+}
+
 .admin-bill-card-head em {
   border: 1px solid rgba(251, 146, 60, 0.32);
   background: rgba(251, 146, 60, 0.13);
