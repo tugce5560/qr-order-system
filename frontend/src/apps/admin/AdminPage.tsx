@@ -2088,6 +2088,27 @@ function ReportsPanel({
     1,
     ...reports.tableHistory.map((row) => row.revenue),
   );
+  const getLinePoints = (values: number[]) => {
+    const maxValue = Math.max(1, ...values);
+    const lastIndex = Math.max(1, values.length - 1);
+
+    return values.map((value, index) => ({
+      x: 16 + (index / lastIndex) * 288,
+      y: 128 - (value / maxValue) * 98,
+    }));
+  };
+  const hourlyLinePoints = getLinePoints(
+    reports.hourlySales.map((item) => item.revenue),
+  );
+  const monthlyLinePoints = getLinePoints(
+    reports.monthlyChart.map((item) => item.revenue),
+  );
+  const hourlyPointString = hourlyLinePoints
+    .map((point) => `${point.x},${point.y}`)
+    .join(" ");
+  const monthlyPointString = monthlyLinePoints
+    .map((point) => `${point.x},${point.y}`)
+    .join(" ");
 
   return (
     <>
@@ -2107,21 +2128,25 @@ function ReportsPanel({
         <TopProductsPanel analytics={analytics} />
         <section className="admin-panel report-card">
           <PanelHeading eyebrow="Bugün" title="Saat Bazlı Ciro" />
-          <div className="report-hour-chart">
-            {reports.hourlySales.map((item) => (
-              <article key={item.hour}>
-                <span>{String(item.hour).padStart(2, "0")}:00</span>
-                <div className="analytics-bar-track">
-                  <i
-                    style={{
-                      width: `${Math.max(8, (item.revenue / maxHourlyRevenue) * 100)}%`,
-                    }}
-                  />
-                </div>
-                <strong>{formatCurrency(item.revenue)}</strong>
-                <em>{item.orderCount} sipariş</em>
-              </article>
-            ))}
+          <div className="report-line-chart">
+            <svg viewBox="0 0 320 150" role="img" aria-label="Saat bazlı ciro çizgi grafiği">
+              <polyline points={hourlyPointString} />
+              {hourlyLinePoints.map((point, index) => (
+                <circle
+                  cx={point.x}
+                  cy={point.y}
+                  key={`${point.x}-${index}`}
+                  r="4"
+                />
+              ))}
+            </svg>
+            <div className="report-chart-labels">
+              {reports.hourlySales.map((item) => (
+                <span key={item.hour}>{String(item.hour).padStart(2, "0")}:00</span>
+              ))}
+            </div>
+            <strong>{formatCurrency(maxHourlyRevenue)}</strong>
+            <em>En yoğun saat cirosu</em>
           </div>
         </section>
         <section className="admin-panel report-card wide">
@@ -2151,21 +2176,25 @@ function ReportsPanel({
         </section>
         <section className="admin-panel report-card wide">
           <PanelHeading eyebrow="2026" title="Aylık Ciro Grafiği" />
-          <div className="report-month-chart">
-            {reports.monthlyChart.map((item) => (
-              <article key={item.month}>
-                <span>{getMonthLabel(item.month)}</span>
-                <div className="analytics-bar-track">
-                  <i
-                    style={{
-                      width: `${Math.max(6, (item.revenue / maxMonthlyRevenue) * 100)}%`,
-                    }}
-                  />
-                </div>
-                <strong>{formatCurrency(item.revenue)}</strong>
-                <em>{item.orderCount} sipariş</em>
-              </article>
-            ))}
+          <div className="report-line-chart report-line-chart-wide">
+            <svg viewBox="0 0 320 150" role="img" aria-label="Aylık ciro çizgi grafiği">
+              <polyline points={monthlyPointString} />
+              {monthlyLinePoints.map((point, index) => (
+                <circle
+                  cx={point.x}
+                  cy={point.y}
+                  key={`${point.x}-${index}`}
+                  r="4"
+                />
+              ))}
+            </svg>
+            <div className="report-chart-labels">
+              {reports.monthlyChart.map((item) => (
+                <span key={item.month}>{getMonthLabel(item.month)}</span>
+              ))}
+            </div>
+            <strong>{formatCurrency(maxMonthlyRevenue)}</strong>
+            <em>En yüksek aylık ciro</em>
           </div>
         </section>
         <section className="admin-panel report-card">

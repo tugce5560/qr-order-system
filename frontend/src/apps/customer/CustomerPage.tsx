@@ -429,7 +429,7 @@ export default function CustomerPage() {
         mergedOrders.some(
           (order) =>
             order.tableId === tableId &&
-            ["served", "paid"].includes(order.status.toLowerCase()),
+            order.status.toLowerCase() === "paid",
         ),
       );
     } catch {
@@ -454,7 +454,7 @@ export default function CustomerPage() {
       setCustomerOrders(demoOrders);
       setCanRateOrder(
         demoOrders.some((order) =>
-          ["served", "paid"].includes(order.status.toLowerCase()),
+          order.status.toLowerCase() === "paid",
         ),
       );
     }
@@ -503,9 +503,11 @@ export default function CustomerPage() {
       }
 
       if (orderEvent.status === "Served") {
-        setOrderStatusMessage(
-          "Siparişiniz teslim edildi. Deneyiminizi değerlendirebilirsiniz.",
-        );
+        setOrderStatusMessage("Siparişiniz teslim edildi.");
+      }
+
+      if (orderEvent.status === "Paid") {
+        setOrderStatusMessage("Ödemeniz tamamlandı. Dilerseniz deneyiminizi değerlendirin.");
       }
 
       const realtimeOrder: CustomerOrder = {
@@ -533,7 +535,7 @@ export default function CustomerPage() {
       });
 
       setCanRateOrder((currentValue) =>
-        ["served", "paid"].includes(orderEvent.status.toLowerCase())
+        orderEvent.status.toLowerCase() === "paid"
           ? true
           : currentValue,
       );
@@ -1152,29 +1154,6 @@ export default function CustomerPage() {
         </div>
       )}
 
-      <section className="customer-rating-card" aria-labelledby="customer-rating-title">
-        <div className="customer-rating-icon" aria-hidden="true">
-          ★
-        </div>
-        <div className="customer-rating-copy">
-          <h2 id="customer-rating-title">Deneyiminizi değerlendirin</h2>
-          <span>
-            {hasRatedCurrentSession
-              ? "Geri bildiriminiz alındı."
-              : canRateOrder
-                ? "İsterseniz hız, servis ve lezzet için kısa bir puan bırakın."
-                : "Sipariş servis edilince aktif olur."}
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={openRatingModal}
-          disabled={!canRateOrder || hasRatedCurrentSession}
-        >
-          {hasRatedCurrentSession ? "Değerlendirildi" : "Değerlendir"}
-        </button>
-      </section>
-
       {isCartOpen && (
         <div
           className="cart-drawer-backdrop"
@@ -1587,7 +1566,7 @@ export default function CustomerPage() {
             >
               X
             </button>
-            <p className="rating-kicker">Siparişiniz servis edildi</p>
+            <p className="rating-kicker">Ödemeniz tamamlandı</p>
             <h2 id="rating-modal-title">Deneyiminiz nasıldı?</h2>
             <p className="rating-helper">
               Geri bildiriminiz bir sonraki ziyaretinizi iyileştirmemize yardımcı olur.
