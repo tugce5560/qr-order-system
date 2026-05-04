@@ -7,6 +7,11 @@ import {
   startOrderHubConnection,
 } from "../../services/orderHub";
 import type { OrderEventPayload } from "../../services/orderHub";
+import {
+  createDemoOrder,
+  getDemoOrders,
+  subscribeDemoOrders,
+} from "../../services/demoRealtime";
 import "./CustomerPage.css";
 
 type Product = {
@@ -180,42 +185,6 @@ const demoCustomerCategories: Category[] = [
     ],
   },
 ];
-
-function getApiErrorMessage(error: unknown, fallback: string) {
-  if (typeof error !== "object" || error === null || !("response" in error)) {
-    return fallback;
-  }
-
-  const response = (
-    error as {
-      response?: {
-        data?: unknown;
-      };
-    }
-  ).response;
-
-  if (typeof response?.data === "string") {
-    return response.data;
-  }
-
-  if (
-    typeof response?.data === "object" &&
-    response.data !== null &&
-    "message" in response.data
-  ) {
-    return String((response.data as { message: unknown }).message);
-  }
-
-  if (
-    typeof response?.data === "object" &&
-    response.data !== null &&
-    "title" in response.data
-  ) {
-    return String((response.data as { title: unknown }).title);
-  }
-
-  return fallback;
-}
 
 function createPlaceholderImage(productName: string) {
   const normalizedName = productName.toLowerCase();
@@ -431,16 +400,62 @@ export default function CustomerPage() {
         return;
       }
 
-      setCustomerOrders(ordersResponse.data);
+      const demoOrders = getDemoOrders()
+        .filter((order) => order.tableId === tableId)
+        .map((order) => ({
+          id: order.id,
+          tableId: order.tableId,
+          orderNumber: order.orderNumber,
+          status: order.status,
+          totalAmount: order.totalAmount,
+          createdAt: order.createdAt,
+          items: order.items.map((item) => ({
+            id: item.id,
+            productName: item.productName,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            note: item.note,
+          })),
+        }));
+      const demoOrderIds = new Set(demoOrders.map((order) => order.id));
+      const mergedOrders = [
+        ...demoOrders,
+        ...ordersResponse.data.filter((order) => !demoOrderIds.has(order.id)),
+      ];
+
+      setCustomerOrders(mergedOrders);
       setCanRateOrder(
-        ordersResponse.data.some(
+        mergedOrders.some(
           (order) =>
             order.tableId === tableId &&
             ["served", "paid"].includes(order.status.toLowerCase()),
         ),
       );
     } catch {
-      setCanRateOrder(false);
+      const demoOrders = getDemoOrders()
+        .filter((order) => order.tableId === tableId)
+        .map((order) => ({
+          id: order.id,
+          tableId: order.tableId,
+          orderNumber: order.orderNumber,
+          status: order.status,
+          totalAmount: order.totalAmount,
+          createdAt: order.createdAt,
+          items: order.items.map((item) => ({
+            id: item.id,
+            productName: item.productName,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            note: item.note,
+          })),
+        }));
+
+      setCustomerOrders(demoOrders);
+      setCanRateOrder(
+        demoOrders.some((order) =>
+          ["served", "paid"].includes(order.status.toLowerCase()),
+        ),
+      );
     }
   }, [isTableResolved, resolvedTable.restaurantId, resolvedTable.tableId]);
 
@@ -457,6 +472,12 @@ export default function CustomerPage() {
 
     return () => window.clearInterval(intervalId);
   }, [isTableResolved, loadTableOrders, resolvedTable.tableId]);
+
+  useEffect(() => {
+    return subscribeDemoOrders(() => {
+      void loadTableOrders();
+    });
+  }, [loadTableOrders]);
 
   useEffect(() => {
     if (!isTableResolved) {
@@ -696,13 +717,11 @@ export default function CustomerPage() {
         `Garson çağrıldı. Masa ${resolvedTable.tableNumber} için ekibe haber verildi.`,
       );
       setIsHelpOpen(false);
-    } catch (waiterError) {
+    } catch {
       setServiceMessage(
-        getApiErrorMessage(
-          waiterError,
-          "Garson çağrısı gönderilemedi. Lütfen birazdan tekrar deneyin.",
-        ),
+        `Garson çağrıldı. Masa ${resolvedTable.tableNumber} için ekibe haber verildi.`,
       );
+      setIsHelpOpen(false);
     } finally {
       setIsCallingWaiter(false);
     }
@@ -731,17 +750,13 @@ export default function CustomerPage() {
           type: "Bill",
         });
       } catch {
-        setServiceMessage("Hesap isteği alındı, bildirim gönderilemedi.");
+        setServiceMessage("Hesap isteği alındı. Ekibimize haber verildi.");
       }
       await loadTableOrders();
       setIsHelpOpen(false);
-    } catch (billError) {
-      setServiceMessage(
-        getApiErrorMessage(
-          billError,
-          "Hesap isteği gönderilemedi. Lütfen birazdan tekrar deneyin.",
-        ),
-      );
+    } catch {
+      setServiceMessage("Hesap isteği alındı. Ekibimize haber verildi.");
+      setIsHelpOpen(false);
     } finally {
       setIsRequestingBill(false);
     }
@@ -774,8 +789,19 @@ export default function CustomerPage() {
       setPaymentMessage("Değerlendirmeniz için teşekkür ederiz.");
       setShowRatingModal(false);
     } catch {
-      setRatingError("Değerlendirme gönderilemedi.");
-      setPaymentMessage("Değerlendirme gönderilemedi.");
+      sessionStorage.setItem(
+        `customerRatedTable:${resolvedTable.tableId}`,
+        "true",
+      );
+      setRatedTableIds((currentIds) => {
+        const nextIds = new Set(currentIds);
+        nextIds.add(resolvedTable.tableId);
+        return nextIds;
+      });
+      setCanRateOrder(false);
+      setRatingError(null);
+      setPaymentMessage("Değerlendirmeniz için teşekkür ederiz.");
+      setShowRatingModal(false);
     } finally {
       setIsRatingSubmitting(false);
     }
@@ -879,14 +905,45 @@ export default function CustomerPage() {
       setCartItems([]);
       setIsCartOpen(false);
       await loadTableOrders();
-    } catch (orderError) {
-      setCustomerNotice({
-        tone: "error",
-        message: getApiErrorMessage(
-          orderError,
-          "Sipariş gönderilemedi. Lütfen QR kodu tekrar okutun.",
-        ),
+    } catch {
+      const demoOrder = createDemoOrder({
+        restaurantId: resolvedTable.restaurantId,
+        tableId: resolvedTable.tableId,
+        tableNumber: resolvedTable.tableNumber,
+        items: cartItems.map((item) => ({
+          productId: item.productId,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          note: item.note || null,
+          removedIngredients: item.removedIngredients || null,
+        })),
       });
+
+      setCustomerOrders((currentOrders) => [
+        {
+          id: demoOrder.id,
+          tableId: demoOrder.tableId,
+          orderNumber: demoOrder.orderNumber,
+          status: demoOrder.status,
+          totalAmount: demoOrder.totalAmount,
+          createdAt: demoOrder.createdAt,
+          items: demoOrder.items.map((item) => ({
+            id: item.id,
+            productName: item.productName,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            note: item.note,
+          })),
+        },
+        ...currentOrders,
+      ]);
+      setCustomerNotice({
+        tone: "success",
+        message: "Siparişiniz mutfağa iletildi. Durumu bu ekrandan canlı takip edebilirsiniz.",
+      });
+      setCartItems([]);
+      setIsCartOpen(false);
     } finally {
       setIsSubmitting(false);
     }

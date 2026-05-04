@@ -6,6 +6,12 @@ import {
   startOrderHubConnection,
 } from "../../services/orderHub";
 import type { OrderEventPayload } from "../../services/orderHub";
+import {
+  getDemoOrders,
+  subscribeDemoOrders,
+  updateDemoOrderStatus,
+  type DemoOrder,
+} from "../../services/demoRealtime";
 import "./KitchenBoardPage.css";
 
 type OrderItem = {
@@ -111,6 +117,37 @@ function getStatusLabel(status: string) {
   return isKitchenStatus(status) ? statusLabels[status] : status;
 }
 
+function demoOrderToKitchenOrder(order: DemoOrder): Order {
+  return {
+    id: order.id,
+    orderNumber: order.orderNumber,
+    tableId: order.tableId,
+    status: order.status,
+    totalAmount: order.totalAmount,
+    createdAt: order.createdAt,
+    items: order.items.map((item) => ({
+      id: item.id,
+      productName: item.productName,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      note: item.note,
+      removedIngredients: item.removedIngredients,
+    })),
+  };
+}
+
+function mergeOrdersWithDemo(orders: Order[]) {
+  const demoOrders = getDemoOrders()
+    .filter((order) => isKitchenStatus(order.status))
+    .map(demoOrderToKitchenOrder);
+  const orderIds = new Set(demoOrders.map((order) => order.id));
+
+  return [
+    ...demoOrders,
+    ...orders.filter((order) => !orderIds.has(order.id)),
+  ];
+}
+
 function getCreatedAtTime(order: Order) {
   if (!order.createdAt) {
     return 0;
@@ -178,10 +215,14 @@ export default function KitchenBoardPage() {
       setError(null);
 
       const response = await api.get<Order[]>("/orders");
-      setOrders(response.data.filter((order) => isKitchenStatus(order.status)));
+      setOrders(
+        mergeOrdersWithDemo(
+          response.data.filter((order) => isKitchenStatus(order.status)),
+        ),
+      );
     } catch {
       setError(null);
-      setOrders(demoKitchenOrders);
+      setOrders(mergeOrdersWithDemo(demoKitchenOrders));
     } finally {
       setIsLoading(false);
     }
@@ -197,6 +238,7 @@ export default function KitchenBoardPage() {
       await fetchOrders();
     } catch {
       setError(null);
+      updateDemoOrderStatus(orderId, status);
       setOrders((currentOrders) =>
         currentOrders.map((order) =>
           order.id === orderId ? { ...order, status } : order,
@@ -248,6 +290,18 @@ export default function KitchenBoardPage() {
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
+  }, []);
+
+  useEffect(() => {
+    return subscribeDemoOrders((demoOrders) => {
+      setOrders((currentOrders) =>
+        mergeOrdersWithDemo([
+          ...currentOrders.filter(
+            (order) => !demoOrders.some((demoOrder) => demoOrder.id === order.id),
+          ),
+        ]),
+      );
+    });
   }, []);
 
   useEffect(() => {

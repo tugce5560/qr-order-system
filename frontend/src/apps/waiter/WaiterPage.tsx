@@ -10,6 +10,12 @@ import type {
   OrderEventPayload,
   ServiceRequestPayload,
 } from "../../services/orderHub";
+import {
+  getDemoOrders,
+  subscribeDemoOrders,
+  updateDemoOrderStatus,
+  type DemoOrder,
+} from "../../services/demoRealtime";
 import "./WaiterPage.css";
 
 type WaiterTable = {
@@ -139,6 +145,36 @@ const demoWaiterCalls: WaiterCall[] = [
   },
 ];
 
+function demoOrderToWaiterOrder(order: DemoOrder): WaiterOrder {
+  return {
+    id: order.id,
+    orderNumber: order.orderNumber,
+    tableId: order.tableId,
+    status: order.status,
+    totalAmount: order.totalAmount,
+    createdAt: order.createdAt,
+    items: order.items.map((item) => ({
+      id: item.id,
+      productId: item.productId,
+      productName: item.productName,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      note: item.note,
+      removedIngredients: item.removedIngredients,
+    })),
+  };
+}
+
+function mergeWaiterOrdersWithDemo(orders: WaiterOrder[]) {
+  const demoOrders = getDemoOrders().map(demoOrderToWaiterOrder);
+  const orderIds = new Set(demoOrders.map((order) => order.id));
+
+  return [
+    ...demoOrders,
+    ...orders.filter((order) => !orderIds.has(order.id)),
+  ];
+}
+
 type EditOrderItem = {
   productId: number;
   quantity: number;
@@ -182,14 +218,16 @@ function WaiterPage() {
       setWaiterCalls(callsResponse.data);
       setProducts(productsResponse.data);
       setOrders(
-        ordersResponse.data.filter((order) =>
-          visibleStatuses.includes(order.status),
+        mergeWaiterOrdersWithDemo(
+          ordersResponse.data.filter((order) =>
+            visibleStatuses.includes(order.status),
+          ),
         ),
       );
     } catch {
       setError(null);
       setTables(demoWaiterTables);
-      setOrders(demoWaiterOrders);
+      setOrders(mergeWaiterOrdersWithDemo(demoWaiterOrders));
       setProducts(demoWaiterProducts);
       setWaiterCalls(demoWaiterCalls);
     } finally {
@@ -268,6 +306,18 @@ function WaiterPage() {
     };
   }, [mergeRealtimeOrder]);
 
+  useEffect(() => {
+    return subscribeDemoOrders((demoOrders) => {
+      setOrders((currentOrders) =>
+        mergeWaiterOrdersWithDemo(
+          currentOrders.filter(
+            (order) => !demoOrders.some((demoOrder) => demoOrder.id === order.id),
+          ),
+        ),
+      );
+    });
+  }, []);
+
   async function updateOrderStatus(orderId: number, status: OrderStatus) {
     try {
       setUpdatingOrderId(orderId);
@@ -275,6 +325,7 @@ function WaiterPage() {
       await fetchWaiterData();
     } catch {
       setError(null);
+      updateDemoOrderStatus(orderId, status);
       setOrders((currentOrders) =>
         currentOrders.map((order) =>
           order.id === orderId ? { ...order, status } : order,

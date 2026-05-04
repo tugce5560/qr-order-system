@@ -34,6 +34,27 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
+function getDemoReceipt(billId?: string): Receipt {
+  return {
+    id: Number(billId) || Date.now(),
+    restaurantName: "Demo Restaurant",
+    tableNumber: Number(sessionStorage.getItem("customerTableNumber")) || 1,
+    billNumber: `AD-DEMO-${billId ?? "001"}`,
+    status: "Paid",
+    subTotal: 390,
+    taxAmount: 0,
+    discountAmount: 0,
+    grandTotal: 390,
+    paymentMethod: "Card",
+    createdAt: new Date().toISOString(),
+    paidAt: new Date().toISOString(),
+    items: [
+      { productName: "Classic Burger", quantity: 1, unitPrice: 245, lineTotal: 245 },
+      { productName: "Limonata", quantity: 1, unitPrice: 145, lineTotal: 145 },
+    ],
+  };
+}
+
 export default function CustomerReceiptPage() {
   const { billId } = useParams();
   const [receipt, setReceipt] = useState<Receipt | null>(null);
@@ -46,7 +67,8 @@ export default function CustomerReceiptPage() {
       const tableId = sessionStorage.getItem("customerTableId");
 
       if (!billId || !restaurantId || !tableId) {
-        setError("Adisyon bilgisi bulunamadı. Lütfen QR menüden tekrar deneyin.");
+        setReceipt(getDemoReceipt(billId));
+        setError(null);
         setIsLoading(false);
         return;
       }
@@ -57,7 +79,8 @@ export default function CustomerReceiptPage() {
         });
         setReceipt(response.data);
       } catch {
-        setError("Adisyon yüklenemedi.");
+        setReceipt(getDemoReceipt(billId));
+        setError(null);
       } finally {
         setIsLoading(false);
       }

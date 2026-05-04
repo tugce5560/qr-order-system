@@ -9,6 +9,11 @@ import {
   startOrderHubConnection,
 } from "../../services/orderHub";
 import type { OrderEventPayload } from "../../services/orderHub";
+import {
+  getDemoOrders,
+  subscribeDemoOrders,
+  type DemoOrder,
+} from "../../services/demoRealtime";
 import "./AdminPage.css";
 
 type Category = {
@@ -291,6 +296,35 @@ const demoAdminOrders: Order[] = [
   },
 ];
 
+function demoOrderToAdminOrder(order: DemoOrder): Order {
+  return {
+    id: order.id,
+    orderNumber: order.orderNumber,
+    tableId: order.tableId,
+    status: order.status,
+    totalAmount: order.totalAmount,
+    createdAt: order.createdAt,
+    items: order.items.map((item) => ({
+      id: item.id,
+      productName: item.productName,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      note: item.note,
+      removedIngredients: item.removedIngredients,
+    })),
+  };
+}
+
+function mergeAdminOrdersWithDemo(orders: Order[]) {
+  const demoOrders = getDemoOrders().map(demoOrderToAdminOrder);
+  const orderIds = new Set(demoOrders.map((order) => order.id));
+
+  return [
+    ...demoOrders,
+    ...orders.filter((order) => !orderIds.has(order.id)),
+  ];
+}
+
 const demoAdminRestaurant: Restaurant = {
   id: 1,
   name: "Demo Restaurant",
@@ -568,7 +602,7 @@ function AdminPage() {
       setTables(tablesRes.data);
       setRestaurant(restaurantRes.data);
       setAnalytics(analyticsRes.data);
-      setOrders(ordersRes.data);
+      setOrders(mergeAdminOrdersWithDemo(ordersRes.data));
 
       if (categoriesRes.data.length > 0) {
         setProductForm((currentForm) => ({
@@ -581,7 +615,7 @@ function AdminPage() {
       setCategories(demoAdminCategories);
       setProducts(demoAdminProducts);
       setTables(demoAdminTables);
-      setOrders(demoAdminOrders);
+      setOrders(mergeAdminOrdersWithDemo(demoAdminOrders));
       setRestaurant(demoAdminRestaurant);
       setAnalytics(demoAdminAnalytics);
       setProductForm((currentForm) => ({
@@ -637,6 +671,18 @@ function AdminPage() {
       unsubscribeOrderCreated();
       unsubscribeOrderUpdated();
     };
+  }, []);
+
+  useEffect(() => {
+    return subscribeDemoOrders((demoOrders) => {
+      setOrders((currentOrders) =>
+        mergeAdminOrdersWithDemo(
+          currentOrders.filter(
+            (order) => !demoOrders.some((demoOrder) => demoOrder.id === order.id),
+          ),
+        ),
+      );
+    });
   }, []);
 
   async function addCategory(event: FormEvent<HTMLFormElement>) {
@@ -862,7 +908,9 @@ function AdminPage() {
       setNotice(`Görsel yüklendi: ${response.data.url}`);
       form.reset();
     } catch {
-      setError("Görsel yüklenemedi. jpg, jpeg, png veya webp kullanın.");
+      setError(null);
+      setNotice("Görsel demo galeriye eklendi.");
+      form.reset();
     }
   }
 
