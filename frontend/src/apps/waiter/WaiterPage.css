@@ -1189,3 +1189,38 @@
     width: 100%;
   }
 }
+
+/* Final edit control contrast guard. */
+.waiter-modal .quantity-controls button {
+  border: 1px solid rgba(250, 204, 21, 0.52);
+  background: linear-gradient(135deg, #facc15, #f97316);
+  color: #111827;
+  box-shadow: 0 10px 24px rgba(249, 115, 22, 0.22);
+  font-weight: 1000;
+  text-shadow: none;
+}
+
+.waiter-modal .quantity-controls button:hover {
+  background: linear-gradient(135deg, #fde047, #fb923c);
+  color: #111827;
+}
+
+.waiter-modal .quantity-controls input {
+  border-color: rgba(250, 204, 21, 0.28);
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+.removable-ingredients label {
+  min-height: 34px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: #202938;
+  color: #f8fafc;
+  font-weight: 900;
+}
+
+.removable-ingredients input {
+  accent-color: #f97316;
+}
