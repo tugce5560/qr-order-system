@@ -904,3 +904,126 @@
     min-height: 42px;
   }
 }
+
+/* Premium dark waiter panel. */
+.waiter-page {
+  background:
+    radial-gradient(circle at top left, rgba(249, 115, 22, 0.14), transparent 32%),
+    linear-gradient(180deg, #0f141b 0, #111827 100%);
+  color: #f8fafc;
+}
+
+.waiter-header,
+.waiter-service-requests,
+.waiter-filter-panel,
+.waiter-orders-panel,
+.waiter-order-card,
+.waiter-bill-modal,
+.waiter-modal {
+  border-color: rgba(226, 232, 240, 0.12);
+  background: rgba(23, 30, 40, 0.94);
+  color: #f8fafc;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.24);
+}
+
+.waiter-header h1,
+.waiter-panel-heading h2,
+.waiter-bill-heading h2,
+.waiter-order-top h3,
+.waiter-order-card strong,
+.waiter-header-stats strong,
+.waiter-modal-header h2 {
+  color: #f8fafc;
+}
+
+.waiter-header p,
+.waiter-panel-heading p,
+.waiter-bill-heading p {
+  color: #fb923c;
+}
+
+.waiter-header span,
+.waiter-header-stats span,
+.waiter-order-meta span,
+.waiter-order-card li span,
+.waiter-order-card li small,
+.waiter-empty-detail,
+.waiter-state,
+.disabled-action {
+  color: #9aa7b8;
+}
+
+.waiter-header-stats article,
+.waiter-request-card,
+.waiter-order-card li,
+.waiter-bill-items li,
+.edit-item-row {
+  border-color: rgba(226, 232, 240, 0.1);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.waiter-status-tabs button,
+.waiter-order-actions button,
+.waiter-bill-heading button,
+.waiter-modal-footer button {
+  border-color: rgba(226, 232, 240, 0.12);
+  background: rgba(255, 255, 255, 0.07);
+  color: #f8fafc;
+}
+
+.waiter-status-tabs button.active,
+.waiter-order-actions button:not(.secondary),
+.waiter-modal-footer button:last-child {
+  border-color: transparent;
+  background: linear-gradient(135deg, #fb923c, #ea580c);
+  color: #111827;
+}
+
+.waiter-modal input,
+.waiter-modal select,
+.waiter-modal textarea {
+  border-color: rgba(226, 232, 240, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f8fafc;
+}
+
+/* Contrast rescue for waiter badges and notes. */
+.waiter-panel-heading > span,
+.waiter-status-tabs strong,
+.waiter-order-top span:first-child,
+.table-status-badge,
+.waiter-request-card span {
+  border: 1px solid rgba(251, 146, 60, 0.28);
+  background: rgba(251, 146, 60, 0.13);
+  color: #fed7aa;
+}
+
+.table-status-badge.status-ready {
+  border-color: rgba(74, 222, 128, 0.34);
+  background: rgba(22, 163, 74, 0.18);
+  color: #bbf7d0;
+}
+
+.table-status-badge.status-served,
+.table-status-badge.status-paid {
+  border-color: rgba(96, 165, 250, 0.34);
+  background: rgba(37, 99, 235, 0.18);
+  color: #bfdbfe;
+}
+
+.waiter-error {
+  border-color: rgba(248, 113, 113, 0.38);
+  background: rgba(127, 29, 29, 0.42);
+  color: #fecaca;
+}
+
+.waiter-order-card li span b,
+.waiter-bill-total strong {
+  color: #f8fafc;
+}
+
+.removable-ingredients label,
+.edit-order-items h3,
+.edit-order-note h3 {
+  color: #e5e7eb;
+}

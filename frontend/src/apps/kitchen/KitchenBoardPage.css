@@ -723,3 +723,102 @@
     justify-self: start;
   }
 }
+
+/* Premium dark kitchen display. */
+.kitchen-shell {
+  background:
+    radial-gradient(circle at top left, rgba(248, 113, 113, 0.16), transparent 30%),
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.1), transparent 32%),
+    linear-gradient(180deg, #0f141b 0, #111827 100%);
+  color: #f8fafc;
+}
+
+.kitchen-board-summary,
+.kitchen-order-card,
+.kitchen-empty-state,
+.kitchen-state-card,
+.kitchen-filter-bar button {
+  border-color: rgba(226, 232, 240, 0.12);
+  background: rgba(23, 30, 40, 0.94);
+  color: #f8fafc;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.24);
+}
+
+.kitchen-filter-bar button.is-active {
+  border-color: rgba(245, 158, 11, 0.42);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.24), rgba(234, 88, 12, 0.16));
+}
+
+.kitchen-filter-bar span,
+.kitchen-board-summary p,
+.kitchen-order-facts dt,
+.kitchen-order-items small,
+.kitchen-empty-state p,
+.kitchen-state-card p {
+  color: #9aa7b8;
+}
+
+.kitchen-filter-bar strong,
+.kitchen-board-summary h2,
+.kitchen-order-card h3,
+.kitchen-order-items span,
+.kitchen-order-facts dd,
+.kitchen-order-actions span,
+.kitchen-empty-state h2,
+.kitchen-state-card h1 {
+  color: #f8fafc;
+}
+
+.kitchen-order-items li,
+.kitchen-order-facts div {
+  border-color: rgba(226, 232, 240, 0.1);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.kitchen-status-chip,
+.kitchen-table-chip,
+.kitchen-board-summary time {
+  background: rgba(255, 255, 255, 0.07);
+  color: #e5e7eb;
+}
+
+.kitchen-order-actions button {
+  background: linear-gradient(135deg, #f59e0b, #ea580c);
+  color: #111827;
+}
+
+/* Contrast rescue for kitchen status chips. */
+.kitchen-order-card-new .kitchen-status-chip {
+  border: 1px solid rgba(96, 165, 250, 0.36);
+  background: rgba(37, 99, 235, 0.18);
+  color: #bfdbfe;
+}
+
+.kitchen-order-card-preparing .kitchen-status-chip {
+  border: 1px solid rgba(251, 146, 60, 0.4);
+  background: rgba(234, 88, 12, 0.2);
+  color: #fed7aa;
+}
+
+.kitchen-order-card-ready .kitchen-status-chip {
+  border: 1px solid rgba(74, 222, 128, 0.36);
+  background: rgba(22, 163, 74, 0.2);
+  color: #bbf7d0;
+}
+
+.kitchen-order-card-served .kitchen-status-chip {
+  border: 1px solid rgba(148, 163, 184, 0.34);
+  background: rgba(148, 163, 184, 0.12);
+  color: #e2e8f0;
+}
+
+.kitchen-empty-icon,
+.kitchen-state-mark {
+  background: rgba(74, 222, 128, 0.16);
+  color: #bbf7d0;
+}
+
+.kitchen-state-error .kitchen-state-mark {
+  background: rgba(248, 113, 113, 0.18);
+  color: #fecaca;
+}

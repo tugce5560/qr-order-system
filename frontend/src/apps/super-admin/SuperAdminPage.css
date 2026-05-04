@@ -787,3 +787,150 @@
     overflow-x: auto;
   }
 }
+
+/* Premium dark SaaS owner dashboard. */
+.super-admin-shell {
+  --super-bg: #0f141b;
+  --super-panel: #171e28;
+  --super-ink: #f8fafc;
+  --super-muted: #9aa7b8;
+  --super-line: rgba(226, 232, 240, 0.12);
+  --super-primary: #60a5fa;
+  --super-primary-dark: #2563eb;
+  background:
+    radial-gradient(circle at top right, rgba(96, 165, 250, 0.16), transparent 34%),
+    linear-gradient(180deg, #0f141b 0, #111827 100%);
+}
+
+.super-admin-sidebar {
+  border-right: 1px solid rgba(226, 232, 240, 0.1);
+  background: rgba(10, 14, 20, 0.96);
+}
+
+.super-admin-panel,
+.super-admin-metric-card,
+.restaurant-card,
+.subscription-grid article,
+.users-grid article,
+.super-admin-empty,
+.super-admin-state,
+.settings-panel {
+  border-color: var(--super-line);
+  background: rgba(23, 30, 40, 0.94);
+  color: var(--super-ink);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.24);
+}
+
+.super-admin-header h1,
+.super-admin-section-heading h2,
+.super-admin-panel-heading h3,
+.super-admin-metric-card strong,
+.restaurant-card h3,
+.subscription-grid h3,
+.users-grid strong,
+.settings-panel h3 {
+  color: #f8fafc;
+}
+
+.super-admin-header p,
+.super-admin-section-heading p,
+.super-admin-panel-heading p,
+.super-admin-metric-card span,
+.restaurant-card span,
+.subscription-grid span,
+.users-grid span,
+.super-admin-empty,
+.settings-panel p {
+  color: var(--super-muted);
+}
+
+.super-admin-form input,
+.super-admin-form select,
+.restaurant-search input {
+  border-color: var(--super-line);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f8fafc;
+}
+
+.super-admin-form input::placeholder,
+.restaurant-search input::placeholder {
+  color: #778397;
+}
+
+.super-admin-header-actions button,
+.super-admin-form button,
+.row-actions button {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+}
+
+.super-admin-form-actions button:last-child,
+.row-actions button:first-child,
+.super-admin-header-actions button {
+  background: linear-gradient(135deg, #60a5fa, #2563eb);
+  color: #fff;
+}
+
+.plan-bar-row,
+.orders-analysis article {
+  border-color: var(--super-line);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+@media (max-width: 640px) {
+  .super-admin-sidebar {
+    background: rgba(10, 14, 20, 0.96);
+  }
+}
+
+/* Contrast rescue for dark super admin theme. */
+.super-admin-header-actions span,
+.restaurant-row em,
+.restaurant-row span,
+.orders-analysis span,
+.plan-bar-row span,
+.revenue-chart span,
+.revenue-chart em,
+.settings-panel > span {
+  color: #aebacc;
+}
+
+.restaurant-row em.status-active {
+  border: 1px solid rgba(74, 222, 128, 0.34);
+  background: rgba(22, 163, 74, 0.18);
+  color: #bbf7d0;
+}
+
+.restaurant-row em.status-trial {
+  border: 1px solid rgba(250, 204, 21, 0.34);
+  background: rgba(202, 138, 4, 0.18);
+  color: #fde68a;
+}
+
+.restaurant-row em.status-inactive {
+  border: 1px solid rgba(148, 163, 184, 0.34);
+  background: rgba(148, 163, 184, 0.12);
+  color: #e2e8f0;
+}
+
+.super-admin-state.success {
+  border-color: rgba(74, 222, 128, 0.34);
+  background: rgba(20, 83, 45, 0.42);
+  color: #bbf7d0;
+}
+
+.super-admin-state.error {
+  border-color: rgba(248, 113, 113, 0.38);
+  background: rgba(127, 29, 29, 0.42);
+  color: #fecaca;
+}
+
+.settings-panel > span {
+  background: rgba(96, 165, 250, 0.16);
+  color: #bfdbfe;
+}
+
+.plan-bar-row b,
+.revenue-chart strong {
+  box-shadow: 0 0 24px rgba(96, 165, 250, 0.22);
+}

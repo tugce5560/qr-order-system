@@ -866,6 +866,17 @@ export default function CustomerPage() {
             <span>{customerOrders.length}</span>
             Siparişlerim
           </button>
+          <button
+            className="customer-support-link"
+            type="button"
+            onClick={() => setIsHelpOpen(true)}
+            aria-label="Destek seçeneklerini aç"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M12 12.25a4.25 4.25 0 1 0 0-8.5 4.25 4.25 0 0 0 0 8.5Zm0 2c-4.15 0-7.5 2.2-7.5 4.9 0 .7.57 1.25 1.27 1.25h12.46c.7 0 1.27-.55 1.27-1.25 0-2.7-3.35-4.9-7.5-4.9Z" />
+            </svg>
+            <span>Destek</span>
+          </button>
         </div>
       </header>
 
@@ -965,6 +976,32 @@ export default function CustomerPage() {
           ))}
         </div>
       </div>
+
+      <section className="customer-rating-card" aria-labelledby="customer-rating-title">
+        <div className="customer-rating-copy">
+          <p>Deneyim değerlendirmesi</p>
+          <h2 id="customer-rating-title">Hız, servis ve lezzeti puanlayın</h2>
+          <span>
+            {hasRatedCurrentSession
+              ? "Geri bildiriminiz alındı. Teşekkür ederiz."
+              : canRateOrder
+                ? "Siparişiniz servis edildi. Dilerseniz kısa bir değerlendirme bırakabilirsiniz."
+                : "Siparişiniz servis edildiğinde değerlendirme aktif olur."}
+          </span>
+        </div>
+        <div className="customer-rating-metrics" aria-hidden="true">
+          <span>Hız</span>
+          <span>Servis</span>
+          <span>Lezzet</span>
+        </div>
+        <button
+          type="button"
+          onClick={openRatingModal}
+          disabled={!canRateOrder || hasRatedCurrentSession}
+        >
+          {hasRatedCurrentSession ? "Değerlendirildi" : "Değerlendir"}
+        </button>
+      </section>
 
       {isCartOpen && (
         <div
@@ -1202,14 +1239,14 @@ export default function CustomerPage() {
           >
             <div className="help-sheet-header">
               <div>
-                <p>Masa yardımı</p>
-                <h2 id="help-title">Yardım</h2>
+                <p>Masa desteği</p>
+                <h2 id="help-title">Destek</h2>
               </div>
               <button
                 className="drawer-close-button"
                 type="button"
                 onClick={() => setIsHelpOpen(false)}
-                aria-label="Yardımı kapat"
+                aria-label="Destek penceresini kapat"
               >
                 X
               </button>
@@ -1228,24 +1265,6 @@ export default function CustomerPage() {
             </div>
           </section>
         </div>
-      )}
-
-      <button
-        className="customer-help-fab"
-        type="button"
-        onClick={() => setIsHelpOpen(true)}
-      >
-        Yardım
-      </button>
-
-      {canRateOrder && !hasRatedCurrentSession && !showRatingModal && (
-        <button
-          className="floating-rating-button"
-          type="button"
-          onClick={openRatingModal}
-        >
-          Deneyimi Değerlendir
-        </button>
       )}
 
       {selectedProduct && (
@@ -1404,13 +1423,13 @@ export default function CustomerPage() {
 
             <div className="rating-fields">
               {renderRatingInput("Hız", "★", speedRating, setSpeedRating)}
-              {renderRatingInput("Lezzet", "★", tasteRating, setTasteRating)}
               {renderRatingInput(
                 "Servis",
                 "★",
                 serviceRating,
                 setServiceRating,
               )}
+              {renderRatingInput("Lezzet", "★", tasteRating, setTasteRating)}
             </div>
 
             <label className="rating-comment-field">
@@ -1437,7 +1456,7 @@ export default function CustomerPage() {
       )}
 
       <footer className="customer-footer">
-        <span>Yardıma mı ihtiyacınız var? Ekibimizi çağırabilirsiniz.</span>
+        <span>Desteğe mi ihtiyacınız var? Ekibimizi çağırabilirsiniz.</span>
         <span>Bizi tercih ettiğiniz için teşekkür ederiz.</span>
       </footer>
     </main>

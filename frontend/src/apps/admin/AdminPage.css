@@ -1248,3 +1248,180 @@
     box-shadow: none;
   }
 }
+
+/* Premium dark responsive admin theme. */
+.admin-dashboard-shell {
+  --admin-bg: #0f141b;
+  --admin-panel: #171e28;
+  --admin-ink: #f8fafc;
+  --admin-muted: #9aa7b8;
+  --admin-soft: #202938;
+  --admin-line: rgba(226, 232, 240, 0.12);
+  --admin-primary: #2dd4bf;
+  --admin-primary-dark: #0f766e;
+  background:
+    radial-gradient(circle at top right, rgba(45, 212, 191, 0.13), transparent 35%),
+    linear-gradient(180deg, #0f141b 0, #111827 100%);
+}
+
+.admin-sidebar {
+  border-right-color: rgba(226, 232, 240, 0.1);
+  background: rgba(10, 14, 20, 0.96);
+}
+
+.admin-main,
+.admin-panel,
+.admin-product-card,
+.admin-bill-card,
+.admin-analytics-card,
+.admin-state-card,
+.admin-modal,
+.admin-placeholder,
+.admin-empty-state,
+.admin-form input,
+.admin-form select,
+.admin-form textarea,
+.admin-data-table article {
+  color: var(--admin-ink);
+}
+
+.admin-panel,
+.admin-product-card,
+.admin-bill-card,
+.admin-analytics-card,
+.admin-modal,
+.admin-state-card {
+  border-color: var(--admin-line);
+  background: rgba(23, 30, 40, 0.94);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.22);
+}
+
+.admin-header h1,
+.admin-section-heading h2,
+.admin-panel-heading h3,
+.admin-product-card h3,
+.admin-modal h3,
+.admin-data-table strong,
+.admin-bill-card strong,
+.admin-ranked-list strong {
+  color: #f8fafc;
+}
+
+.admin-header p,
+.admin-section-heading p,
+.admin-panel-heading p,
+.admin-card-list span,
+.admin-data-table span,
+.admin-data-table em,
+.admin-product-card p,
+.admin-bill-card span,
+.admin-empty-state {
+  color: var(--admin-muted);
+}
+
+.admin-form input,
+.admin-form select,
+.admin-form textarea {
+  border-color: var(--admin-line);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.admin-form input::placeholder,
+.admin-form textarea::placeholder {
+  color: #778397;
+}
+
+.admin-data-table article,
+.admin-card-list article,
+.admin-modal li,
+.admin-modal dl div,
+.admin-product-card dl div,
+.admin-bill-items li {
+  border-color: var(--admin-line);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.admin-header-actions button,
+.admin-form button,
+.admin-row-actions button,
+.qr-actions button,
+.admin-split-actions button,
+.admin-modal button {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+}
+
+.admin-header-actions button:first-child,
+.admin-form-actions button:last-child,
+.admin-row-actions button:first-child,
+.admin-split-actions button:first-child {
+  background: linear-gradient(135deg, #2dd4bf, #0f766e);
+  color: #ffffff;
+}
+
+@media (max-width: 640px) {
+  .admin-sidebar {
+    background: rgba(10, 14, 20, 0.96);
+  }
+
+  .admin-main {
+    padding-bottom: 24px;
+  }
+}
+
+/* Contrast rescue for dark admin theme. */
+.admin-analytics-card span,
+.admin-card-list span,
+.admin-data-table span,
+.admin-modal li span,
+.admin-bill-card-head span,
+.admin-bill-items span,
+.analytics-bars span,
+.analytics-table-list span,
+.analytics-month-chart span,
+.analytics-hour-chart span,
+.admin-product-card dt,
+.admin-modal dt,
+.admin-bill-totals dt {
+  color: #aebacc;
+}
+
+.admin-analytics-card strong,
+.admin-product-card dd,
+.admin-modal dd,
+.admin-bill-totals dd,
+.analytics-bars b,
+.analytics-table-list b,
+.analytics-month-chart b,
+.analytics-hour-chart strong {
+  color: #f8fafc;
+}
+
+.admin-product-card > div:nth-child(2) > span,
+.qr-card-top span,
+.admin-header-actions span,
+.admin-ranked-list span,
+.admin-card-list strong + span,
+.admin-data-table em {
+  border: 1px solid rgba(45, 212, 191, 0.26);
+  background: rgba(45, 212, 191, 0.12);
+  color: #99f6e4;
+}
+
+.admin-error {
+  border-color: rgba(248, 113, 113, 0.38);
+  background: rgba(127, 29, 29, 0.42);
+  color: #fecaca;
+}
+
+.admin-success {
+  border-color: rgba(74, 222, 128, 0.34);
+  background: rgba(20, 83, 45, 0.42);
+  color: #bbf7d0;
+}
+
+.admin-product-image span,
+.admin-placeholder > span {
+  background: rgba(45, 212, 191, 0.14);
+  color: #99f6e4;
+}

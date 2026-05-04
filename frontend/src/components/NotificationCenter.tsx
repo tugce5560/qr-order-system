@@ -21,7 +21,7 @@ function shouldShow(notification: NotificationPayload, role: string) {
   }
 
   if (role === "Waiter") {
-    return ["OrderStatusUpdated", "WaiterCallCreated", "PaymentCompleted"].includes(
+    return ["OrderCreated", "OrderStatusUpdated", "WaiterCallCreated", "PaymentCompleted"].includes(
       notification.type,
     );
   }
