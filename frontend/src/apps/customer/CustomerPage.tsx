@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { api } from "../../services/api";
 import {
   onOrderCreated,
@@ -54,12 +54,6 @@ type ResolvedTable = {
 type CustomerNotice = {
   tone: "success" | "warning" | "error";
   message: string;
-};
-
-type PaymentResponse = {
-  billId: number;
-  paidAmount: number;
-  status: string;
 };
 
 type CreatePaymentResponse = {
@@ -217,7 +211,6 @@ function getRestaurantCoverImage(restaurantSlug?: string) {
 }
 
 export default function CustomerPage() {
-  const navigate = useNavigate();
   const { restaurantSlug, tableNumber } = useParams();
   const [categories, setCategories] = useState<Category[]>([]);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -229,7 +222,6 @@ export default function CustomerPage() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isPaying, setIsPaying] = useState(false);
   const [isCallingWaiter, setIsCallingWaiter] = useState(false);
   const [isRequestingBill, setIsRequestingBill] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState<string | null>(null);
@@ -262,6 +254,7 @@ export default function CustomerPage() {
   const [isTableResolved, setIsTableResolved] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isOrdersOpen, setIsOrdersOpen] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const latestTableIdRef = useRef(resolvedTable.tableId);
 
   const cartTotal = cartItems.reduce(
@@ -616,41 +609,6 @@ export default function CustomerPage() {
     return product[field] || "Belirtilmedi";
   }
 
-  async function pay() {
-    try {
-      setIsPaying(true);
-      setPaymentMessage(null);
-
-      await api.post<CreatePaymentResponse>(
-        "/payments/create",
-        {
-          restaurantId: resolvedTable.restaurantId,
-          tableId: resolvedTable.tableId,
-        },
-      );
-
-      const response = await api.post<PaymentResponse>(
-        "/payments/pay",
-        {
-          restaurantId: resolvedTable.restaurantId,
-          tableId: resolvedTable.tableId,
-          paymentMethod: "Card",
-        },
-      );
-
-      setPaymentMessage(
-        `Ödeme başarıyla alındı. Ödenen tutar: ₺${response.data.paidAmount}`,
-      );
-      setCartItems([]);
-      setIsCartOpen(false);
-      navigate(`/receipt/${response.data.billId}`);
-    } catch {
-      setPaymentMessage("Ödeme tamamlanamadı. Açık adisyon yoksa önce sipariş verin.");
-    } finally {
-      setIsPaying(false);
-    }
-  }
-
   async function callWaiter() {
     try {
       setIsCallingWaiter(true);
@@ -665,6 +623,7 @@ export default function CustomerPage() {
       setServiceMessage(
         `Garson çağrıldı. Masa ${resolvedTable.tableNumber} için ekibe haber verildi.`,
       );
+      setIsHelpOpen(false);
     } catch (waiterError) {
       setServiceMessage(
         getApiErrorMessage(
@@ -703,6 +662,7 @@ export default function CustomerPage() {
         setServiceMessage("Hesap isteği alındı, bildirim gönderilemedi.");
       }
       await loadTableOrders();
+      setIsHelpOpen(false);
     } catch (billError) {
       setServiceMessage(
         getApiErrorMessage(
@@ -889,10 +849,21 @@ export default function CustomerPage() {
         </div>
         <div className="customer-topbar-actions">
           <button
+            className="customer-cart-link"
+            type="button"
+            onClick={() => setIsCartOpen(true)}
+          >
+            <span>
+              {cartItemCount > 0 ? `${cartItemCount} · ₺${cartTotal}` : "0"}
+            </span>
+            Sepetim
+          </button>
+          <button
             className="customer-orders-link"
             type="button"
             onClick={goToMyOrders}
           >
+            <span>{customerOrders.length}</span>
             Siparişlerim
           </button>
         </div>
@@ -926,25 +897,6 @@ export default function CustomerPage() {
           {orderStatusMessage}
         </p>
       )}
-
-      <section className="customer-quick-actions" aria-label="Masa aksiyonları">
-        <button type="button" onClick={goToMyOrders}>
-          <span>{customerOrders.length}</span>
-          Siparişlerim
-        </button>
-        <button type="button" onClick={callWaiter} disabled={isCallingWaiter}>
-          <span>•</span>
-          {isCallingWaiter ? "Çağrılıyor" : "Garson Çağır"}
-        </button>
-        <button
-          type="button"
-          onClick={requestBill}
-          disabled={isRequestingBill || !hasBillableOrders}
-        >
-          <span>₺</span>
-          {isRequestingBill ? "Gönderiliyor" : "Hesap İste"}
-        </button>
-      </section>
 
       {categories.length > 0 && (
         <nav className="category-tabs" aria-label="Menü kategorileri">
@@ -1127,15 +1079,7 @@ export default function CustomerPage() {
                   onClick={placeOrder}
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Sipariş gönderiliyor..." : "Sipariş Ver"}
-                </button>
-                <button
-                  className="pay-button"
-                  type="button"
-                  onClick={pay}
-                  disabled={isPaying}
-                >
-                  {isPaying ? "Ödeniyor..." : "Öde"}
+                  {isSubmitting ? "Sipariş gönderiliyor..." : "Siparişi Gönder"}
                 </button>
               </div>
             </>
@@ -1243,15 +1187,56 @@ export default function CustomerPage() {
         </div>
       )}
 
-      <div className="cart-bottom-bar" role="region" aria-label="Sepet özeti">
-          <div>
-            <span>{cartItemCount} ürün</span>
-            <strong>₺{cartTotal}</strong>
-          </div>
-          <button type="button" onClick={() => setIsCartOpen(true)}>
-            Sepetim
-          </button>
-      </div>
+      {isHelpOpen && (
+        <div
+          className="help-sheet-backdrop"
+          role="presentation"
+          onClick={() => setIsHelpOpen(false)}
+        >
+          <section
+            className="help-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="help-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="help-sheet-header">
+              <div>
+                <p>Masa yardımı</p>
+                <h2 id="help-title">Yardım</h2>
+              </div>
+              <button
+                className="drawer-close-button"
+                type="button"
+                onClick={() => setIsHelpOpen(false)}
+                aria-label="Yardımı kapat"
+              >
+                X
+              </button>
+            </div>
+            <div className="help-sheet-actions">
+              <button type="button" onClick={callWaiter} disabled={isCallingWaiter}>
+                {isCallingWaiter ? "Çağrılıyor..." : "Garson Çağır"}
+              </button>
+              <button
+                type="button"
+                onClick={requestBill}
+                disabled={isRequestingBill || !hasBillableOrders}
+              >
+                {isRequestingBill ? "Gönderiliyor..." : "Hesap İste"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      <button
+        className="customer-help-fab"
+        type="button"
+        onClick={() => setIsHelpOpen(true)}
+      >
+        Yardım
+      </button>
 
       {canRateOrder && !hasRatedCurrentSession && !showRatingModal && (
         <button
