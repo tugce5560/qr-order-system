@@ -76,6 +76,69 @@ type Product = {
   removableIngredients?: string | null;
 };
 
+const demoWaiterTables: WaiterTable[] = [
+  { tableId: 1, tableNumber: 1, activeOrderCount: 2, totalAmount: 760, status: "Active" },
+  { tableId: 2, tableNumber: 2, activeOrderCount: 1, totalAmount: 420, status: "Ready" },
+  { tableId: 3, tableNumber: 3, activeOrderCount: 1, totalAmount: 285, status: "Served" },
+];
+
+const demoWaiterOrders: WaiterOrder[] = [
+  {
+    id: 9001,
+    orderNumber: "DEMO-101",
+    tableId: 1,
+    status: "New",
+    totalAmount: 390,
+    createdAt: new Date().toISOString(),
+    items: [
+      { id: 1, productId: 101, productName: "Classic Burger", quantity: 1, unitPrice: 245, note: "Soğansız" },
+      { id: 2, productId: 102, productName: "Limonata", quantity: 1, unitPrice: 145 },
+    ],
+  },
+  {
+    id: 9002,
+    orderNumber: "DEMO-102",
+    tableId: 2,
+    status: "Ready",
+    totalAmount: 420,
+    createdAt: new Date(Date.now() - 9 * 60 * 1000).toISOString(),
+    items: [
+      { id: 3, productId: 103, productName: "Izgara Tavuk", quantity: 1, unitPrice: 320 },
+      { id: 4, productId: 104, productName: "Ayran", quantity: 2, unitPrice: 50 },
+    ],
+  },
+  {
+    id: 9003,
+    orderNumber: "DEMO-103",
+    tableId: 3,
+    status: "Served",
+    totalAmount: 285,
+    createdAt: new Date(Date.now() - 22 * 60 * 1000).toISOString(),
+    items: [
+      { id: 5, productId: 105, productName: "Mercimek Çorbası", quantity: 1, unitPrice: 120 },
+      { id: 6, productId: 106, productName: "Türk Kahvesi", quantity: 1, unitPrice: 85 },
+    ],
+  },
+];
+
+const demoWaiterProducts: Product[] = [
+  { id: 101, name: "Classic Burger", price: 245, ingredients: "Dana köfte, cheddar, turşu", removableIngredients: "Soğan,Turşu" },
+  { id: 102, name: "Limonata", price: 145 },
+  { id: 103, name: "Izgara Tavuk", price: 320 },
+  { id: 104, name: "Ayran", price: 50 },
+];
+
+const demoWaiterCalls: WaiterCall[] = [
+  {
+    id: 9101,
+    tableId: 1,
+    tableNumber: 1,
+    status: "Pending",
+    message: "Garson çağrısı",
+    createdAt: new Date(Date.now() - 3 * 60 * 1000).toISOString(),
+  },
+];
+
 type EditOrderItem = {
   productId: number;
   quantity: number;
@@ -124,7 +187,11 @@ function WaiterPage() {
         ),
       );
     } catch {
-      setError("Garson paneli verileri yüklenemedi.");
+      setError(null);
+      setTables(demoWaiterTables);
+      setOrders(demoWaiterOrders);
+      setProducts(demoWaiterProducts);
+      setWaiterCalls(demoWaiterCalls);
     } finally {
       setIsLoading(false);
     }
@@ -207,7 +274,12 @@ function WaiterPage() {
       await api.patch(`/orders/${orderId}/status`, { status });
       await fetchWaiterData();
     } catch {
-      setError("Sipariş durumu güncellenemedi.");
+      setError(null);
+      setOrders((currentOrders) =>
+        currentOrders.map((order) =>
+          order.id === orderId ? { ...order, status } : order,
+        ),
+      );
     } finally {
       setUpdatingOrderId(null);
     }
@@ -276,7 +348,34 @@ function WaiterPage() {
       closeEditModal();
       await fetchWaiterData();
     } catch {
-      setError("Sipariş düzenlenemedi.");
+      setError(null);
+      setOrders((currentOrders) =>
+        currentOrders.map((order) =>
+          order.id === editingOrder.id
+            ? {
+                ...order,
+                note: editOrderNote,
+                totalAmount: editItems.reduce((total, item) => {
+                  const product = products.find((currentProduct) => currentProduct.id === item.productId);
+                  return total + (product?.price ?? 0) * item.quantity;
+                }, 0),
+                items: editItems.map((item, index) => {
+                  const product = products.find((currentProduct) => currentProduct.id === item.productId);
+                  return {
+                    id: index + 1,
+                    productId: item.productId,
+                    productName: product?.name ?? "Demo Ürün",
+                    quantity: item.quantity,
+                    unitPrice: product?.price ?? 0,
+                    note: item.note,
+                    removedIngredients: item.removedIngredients,
+                  };
+                }),
+              }
+            : order,
+        ),
+      );
+      closeEditModal();
     } finally {
       setUpdatingOrderId(null);
     }

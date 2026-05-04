@@ -84,6 +84,9 @@ function PanelNavigation({ children }: PanelNavigationProps) {
       </header>
 
       {children}
+      <footer className="panel-footer">
+        © 2026 NDR COMPANY - Tüm hakları saklıdır.
+      </footer>
       <NotificationCenter />
     </div>
   );

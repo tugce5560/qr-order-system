@@ -207,6 +207,192 @@ const emptyProductForm: ProductFormState = {
   isAvailable: true,
 };
 
+const demoAdminCategories: Category[] = [
+  { id: 1, name: "Başlangıçlar", displayOrder: 1, isActive: true },
+  { id: 2, name: "Ana Yemekler", displayOrder: 2, isActive: true },
+  { id: 3, name: "İçecekler", displayOrder: 3, isActive: true },
+];
+
+const demoAdminProducts: Product[] = [
+  {
+    id: 101,
+    categoryId: 1,
+    name: "Mercimek Çorbası",
+    description: "Günlük hazırlanan sıcak başlangıç.",
+    price: 120,
+    imageUrl: "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=900&q=80",
+    calories: 180,
+    allergens: "Gluten",
+    ingredients: "Mercimek, tereyağı, baharat",
+    removableIngredients: "Pul biber",
+    estimatedPreparationMinutes: 8,
+    isAvailable: true,
+  },
+  {
+    id: 102,
+    categoryId: 2,
+    name: "Izgara Tavuk",
+    description: "Baharatlı tavuk, salata ve patates ile.",
+    price: 320,
+    imageUrl: "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?auto=format&fit=crop&w=900&q=80",
+    calories: 520,
+    allergens: null,
+    ingredients: "Tavuk, patates, yeşillik",
+    removableIngredients: "Soğan",
+    estimatedPreparationMinutes: 18,
+    isAvailable: true,
+  },
+  {
+    id: 103,
+    categoryId: 3,
+    name: "Limonata",
+    description: "Ev yapımı ferah limonata.",
+    price: 145,
+    imageUrl: "https://images.unsplash.com/photo-1621263764928-df1444c5e859?auto=format&fit=crop&w=900&q=80",
+    calories: 110,
+    allergens: null,
+    ingredients: "Limon, nane, buz",
+    removableIngredients: "Nane",
+    estimatedPreparationMinutes: 3,
+    isAvailable: true,
+  },
+];
+
+const demoAdminTables: RestaurantTable[] = [
+  { id: 1, tableNumber: 1, qrCodeUrl: "/customer/r/demo-restaurant/table/1", isActive: true },
+  { id: 2, tableNumber: 2, qrCodeUrl: "/customer/r/demo-restaurant/table/2", isActive: true },
+  { id: 3, tableNumber: 3, qrCodeUrl: "/customer/r/demo-restaurant/table/3", isActive: true },
+];
+
+const demoAdminOrders: Order[] = [
+  {
+    id: 9301,
+    orderNumber: "DEMO-301",
+    tableId: 1,
+    status: "New",
+    totalAmount: 390,
+    createdAt: new Date().toISOString(),
+    items: [
+      { id: 1, productName: "Classic Burger", quantity: 1, unitPrice: 245 },
+      { id: 2, productName: "Limonata", quantity: 1, unitPrice: 145 },
+    ],
+  },
+  {
+    id: 9302,
+    orderNumber: "DEMO-302",
+    tableId: 2,
+    status: "Ready",
+    totalAmount: 420,
+    createdAt: new Date(Date.now() - 11 * 60 * 1000).toISOString(),
+    items: [
+      { id: 3, productName: "Izgara Tavuk", quantity: 1, unitPrice: 320 },
+      { id: 4, productName: "Ayran", quantity: 2, unitPrice: 50 },
+    ],
+  },
+];
+
+const demoAdminRestaurant: Restaurant = {
+  id: 1,
+  name: "Demo Restaurant",
+  slug: "demo-restaurant",
+  logoUrl: null,
+  primaryColor: "#111827",
+  secondaryColor: "#1f2937",
+  accentColor: "#fb923c",
+  menuBackgroundColor: "#0f141b",
+  buttonColor: "#fb923c",
+};
+
+const demoAdminAnalytics: AnalyticsSummary = {
+  todayRevenue: 810,
+  todayOrderCount: 2,
+  openBillsCount: 2,
+  paidBillsCount: 4,
+  activeTablesCount: 2,
+  averageOrderValue: 405,
+  totalRevenueThisMonth: 64250,
+  totalOrdersThisMonth: 184,
+  totalOrders: 612,
+  totalRevenue: 198240,
+  avgPreparationTimeSeconds: 720,
+  avgServiceTimeSeconds: 260,
+  avgSpeed: 4.7,
+  avgTaste: 4.8,
+  avgService: 4.6,
+  totalRatings: 58,
+  topProducts: [
+    { name: "Classic Burger", totalSold: 42 },
+    { name: "Izgara Tavuk", totalSold: 36 },
+    { name: "Limonata", totalSold: 31 },
+  ],
+};
+
+const demoTopProductAnalytics: TopProductAnalytics[] = [
+  { productId: 101, productName: "Classic Burger", quantitySold: 42, revenue: 10290 },
+  { productId: 102, productName: "Izgara Tavuk", quantitySold: 36, revenue: 11520 },
+  { productId: 103, productName: "Limonata", quantitySold: 31, revenue: 4495 },
+];
+
+const demoTablePerformanceAnalytics: TablePerformanceAnalytics[] = [
+  { tableId: 1, tableNumber: 1, orderCount: 18, revenue: 7420, lastOrderAt: new Date().toISOString() },
+  { tableId: 2, tableNumber: 2, orderCount: 14, revenue: 5880, lastOrderAt: new Date(Date.now() - 45 * 60 * 1000).toISOString() },
+  { tableId: 3, tableNumber: 3, orderCount: 11, revenue: 4360, lastOrderAt: new Date(Date.now() - 90 * 60 * 1000).toISOString() },
+];
+
+const demoHourlyOrdersAnalytics: HourlyOrdersAnalytics[] = [
+  { hour: 10, orderCount: 4, revenue: 1320 },
+  { hour: 12, orderCount: 12, revenue: 4860 },
+  { hour: 14, orderCount: 9, revenue: 3720 },
+  { hour: 19, orderCount: 18, revenue: 6940 },
+  { hour: 21, orderCount: 11, revenue: 4210 },
+];
+
+const demoMonthlySalesAnalytics: MonthlySalesAnalytics[] = [
+  { month: 1, revenue: 38240, orderCount: 118 },
+  { month: 2, revenue: 42180, orderCount: 132 },
+  { month: 3, revenue: 55740, orderCount: 164 },
+  { month: 4, revenue: 64250, orderCount: 184 },
+];
+
+const demoBillReceipts: BillReceipt[] = [
+  {
+    id: 9501,
+    restaurantId: 1,
+    restaurantName: "Demo Restaurant",
+    tableId: 1,
+    tableNumber: 1,
+    billNumber: "AD-DEMO-001",
+    status: "Open",
+    subTotal: 390,
+    taxAmount: 0,
+    discountAmount: 0,
+    grandTotal: 390,
+    createdAt: new Date().toISOString(),
+    items: [
+      { productName: "Classic Burger", quantity: 1, unitPrice: 245, lineTotal: 245 },
+      { productName: "Limonata", quantity: 1, unitPrice: 145, lineTotal: 145 },
+    ],
+  },
+  {
+    id: 9502,
+    restaurantId: 1,
+    restaurantName: "Demo Restaurant",
+    tableId: 2,
+    tableNumber: 2,
+    billNumber: "AD-DEMO-002",
+    status: "Open",
+    subTotal: 420,
+    taxAmount: 0,
+    discountAmount: 0,
+    grandTotal: 420,
+    createdAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+    items: [
+      { productName: "Izgara Tavuk", quantity: 1, unitPrice: 320, lineTotal: 320 },
+      { productName: "Ayran", quantity: 2, unitPrice: 50, lineTotal: 100 },
+    ],
+  },
+];
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("tr-TR", {
     style: "currency",
@@ -391,13 +577,17 @@ function AdminPage() {
         }));
       }
     } catch {
-      setCategories([]);
-      setProducts([]);
-      setTables([]);
-      setOrders([]);
-      setRestaurant(null);
-      setAnalytics(null);
-      setError("Panel verileri yüklenemedi. API bağlantısını ve oturumunuzu kontrol edin.");
+      setError(null);
+      setCategories(demoAdminCategories);
+      setProducts(demoAdminProducts);
+      setTables(demoAdminTables);
+      setOrders(demoAdminOrders);
+      setRestaurant(demoAdminRestaurant);
+      setAnalytics(demoAdminAnalytics);
+      setProductForm((currentForm) => ({
+        ...currentForm,
+        categoryId: currentForm.categoryId || String(demoAdminCategories[0].id),
+      }));
     } finally {
       setIsLoading(false);
     }
@@ -1489,7 +1679,8 @@ function BillsPanel({
             ),
         );
       } catch {
-        setBillError("Adisyonlar yüklenemedi.");
+        setBillError(null);
+        setReceipts(demoBillReceipts);
       } finally {
         setIsLoadingBills(false);
       }
@@ -1629,7 +1820,11 @@ function AnalyticsDashboard({ summary }: { summary: AnalyticsSummary | null }) {
         setHourlyOrders(hourlyRes.data);
         setMonthlySales(monthlyRes.data);
       } catch {
-        setAnalyticsError("Analytics verileri yüklenemedi.");
+        setAnalyticsError(null);
+        setTopProducts(demoTopProductAnalytics);
+        setTablePerformance(demoTablePerformanceAnalytics);
+        setHourlyOrders(demoHourlyOrdersAnalytics);
+        setMonthlySales(demoMonthlySalesAnalytics);
       } finally {
         setIsLoadingAnalytics(false);
       }

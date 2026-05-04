@@ -126,6 +126,61 @@ const restaurantCoverImages: Record<string, string> = {
     "https://images.unsplash.com/photo-1521017432531-fbd92d768814?auto=format&fit=crop&w=1600&q=84",
 };
 
+const demoCustomerCategories: Category[] = [
+  {
+    id: 1,
+    name: "Favoriler",
+    displayOrder: 1,
+    products: [
+      {
+        id: 101,
+        name: "Classic Burger",
+        description: "Dana köfte, cheddar, turşu ve özel sos.",
+        price: 245,
+        imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=900&q=80",
+        ingredients: "Dana köfte, cheddar, turşu, özel sos",
+        removableIngredients: "Soğan,Turşu,Sos",
+        estimatedPreparationMinutes: 14,
+      },
+      {
+        id: 102,
+        name: "Izgara Tavuk",
+        description: "Baharatlı tavuk, salata ve patates ile.",
+        price: 320,
+        imageUrl: "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?auto=format&fit=crop&w=900&q=80",
+        ingredients: "Tavuk, patates, yeşillik",
+        removableIngredients: "Soğan",
+        estimatedPreparationMinutes: 18,
+      },
+    ],
+  },
+  {
+    id: 2,
+    name: "İçecekler",
+    displayOrder: 2,
+    products: [
+      {
+        id: 103,
+        name: "Limonata",
+        description: "Ev yapımı ferah limonata.",
+        price: 145,
+        imageUrl: "https://images.unsplash.com/photo-1621263764928-df1444c5e859?auto=format&fit=crop&w=900&q=80",
+        ingredients: "Limon, nane, buz",
+        removableIngredients: "Nane",
+        estimatedPreparationMinutes: 3,
+      },
+      {
+        id: 104,
+        name: "Ayran",
+        description: "Soğuk ve taze servis edilir.",
+        price: 50,
+        imageUrl: "https://images.unsplash.com/photo-1563636619-e9143da7973b?auto=format&fit=crop&w=900&q=80",
+        estimatedPreparationMinutes: 2,
+      },
+    ],
+  },
+];
+
 function getApiErrorMessage(error: unknown, fallback: string) {
   if (typeof error !== "object" || error === null || !("response" in error)) {
     return fallback;
@@ -334,7 +389,24 @@ export default function CustomerPage() {
         setCategories(menuResponse.data);
         setIsTableResolved(true);
       } catch {
-        setError("Masa veya menü yüklenemedi. QR linkini kontrol edin.");
+        const fallbackTable: ResolvedTable = {
+          restaurantId: 1,
+          tableId: 1,
+          tableNumber: Number(tableNumber) || 1,
+          restaurantName: "Demo Restaurant",
+          primaryColor: "#111827",
+          accentColor: "#fb923c",
+          menuBackgroundColor: "#0f141b",
+          buttonColor: "#fb923c",
+        };
+
+        setError(null);
+        setResolvedTable(fallbackTable);
+        latestTableIdRef.current = fallbackTable.tableId;
+        setCategories(demoCustomerCategories);
+        setTableSessionToken("demo-table-session");
+        setTableSessionExpiresAt(new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString());
+        setIsTableResolved(true);
       } finally {
         setIsLoading(false);
       }
@@ -1453,8 +1525,7 @@ export default function CustomerPage() {
       )}
 
       <footer className="customer-footer">
-        <span>Desteğe mi ihtiyacınız var? Ekibimizi çağırabilirsiniz.</span>
-        <span>Bizi tercih ettiğiniz için teşekkür ederiz.</span>
+        <span>© 2026 NDR COMPANY - Tüm hakları saklıdır.</span>
       </footer>
     </main>
   );

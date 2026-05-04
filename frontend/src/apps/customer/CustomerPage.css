@@ -1160,15 +1160,16 @@
 }
 
 .customer-footer {
-  display: flex;
-  justify-content: space-between;
-  gap: 18px;
-  width: min(1180px, 100%);
+  width: 100%;
   margin: 30px auto 0;
-  padding: 0 16px;
-  color: var(--muted);
+  border-top: 1px solid rgba(255, 244, 230, 0.1);
+  padding: 26px 16px 32px;
+  background: rgba(3, 7, 18, 0.88);
+  color: #9ca3af;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 750;
+  line-height: 1.45;
+  text-align: center;
 }
 
 @media (min-width: 720px) {

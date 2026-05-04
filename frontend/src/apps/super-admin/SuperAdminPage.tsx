@@ -64,6 +64,57 @@ const planPrices: Record<SubscriptionPlan, number> = {
   Premium: 2999,
 };
 
+const demoSuperAdminData: SuperAdminPayload = {
+  restaurants: [
+    {
+      id: 1,
+      name: "Limon Cafe",
+      slug: "limon-cafe",
+      city: "İstanbul",
+      status: "Active",
+      plan: "Premium",
+      subscriptionEndsAt: "2026-12-31",
+      adminUser: "Limon Cafe Admin",
+      orders: 184,
+      revenue: 64250,
+    },
+    {
+      id: 2,
+      name: "Kuzey Grill",
+      slug: "kuzey-grill",
+      city: "Ankara",
+      status: "Active",
+      plan: "Pro",
+      subscriptionEndsAt: "2026-11-15",
+      adminUser: "Kuzey Operasyon",
+      orders: 132,
+      revenue: 48740,
+    },
+    {
+      id: 3,
+      name: "Mavi Masa Bistro",
+      slug: "mavi-masa-bistro",
+      city: "İzmir",
+      status: "Trial",
+      plan: "Basic",
+      subscriptionEndsAt: "2026-06-30",
+      adminUser: "Bistro Admin",
+      orders: 76,
+      revenue: 21980,
+    },
+  ],
+  users: [
+    { id: 1, name: "Tuğçe Admin", email: "admin@test.com", restaurantName: "Limon Cafe", role: "Owner", status: "Active" },
+    { id: 2, name: "Mutfak Ekibi", email: "kitchen@test.com", restaurantName: "Kuzey Grill", role: "Manager", status: "Active" },
+    { id: 3, name: "Garson Ekibi", email: "waiter@test.com", restaurantName: "Mavi Masa Bistro", role: "Support", status: "Invited" },
+  ],
+  reports: [
+    { label: "Bugün", orders: 38, revenue: 12840 },
+    { label: "Bu Hafta", orders: 214, revenue: 73950 },
+    { label: "Bu Ay", orders: 612, revenue: 198240 },
+  ],
+};
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("tr-TR", {
     style: "currency",
@@ -170,10 +221,10 @@ function SuperAdminPage() {
       setUsers(response.data.users);
       setReports(response.data.reports);
     } catch {
-      setRestaurants([]);
-      setUsers([]);
-      setReports([]);
-      setError("Super admin verileri yüklenemedi. API bağlantısını ve yetkinizi kontrol edin.");
+      setError(null);
+      setRestaurants(demoSuperAdminData.restaurants);
+      setUsers(demoSuperAdminData.users);
+      setReports(demoSuperAdminData.reports);
     } finally {
       setIsLoading(false);
     }

@@ -1,5 +1,7 @@
 .panel-layout {
   min-height: 100svh;
+  display: flex;
+  flex-direction: column;
   background: #f6f7f9;
 }
 
@@ -134,6 +136,18 @@
   color: #4b5563;
 }
 
+.panel-footer {
+  margin-top: auto;
+  border-top: 1px solid #dde1e7;
+  padding: 28px 16px 34px;
+  background: #050a13;
+  color: #9ca3af;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.45;
+  text-align: center;
+}
+
 @media (max-width: 760px) {
   .panel-topbar {
     align-items: flex-start;
@@ -203,6 +217,12 @@
   border-bottom: 1px solid rgba(226, 232, 240, 0.1);
   background: rgba(15, 20, 27, 0.88);
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
+}
+
+.panel-footer {
+  border-top-color: rgba(226, 232, 240, 0.1);
+  background: rgba(3, 7, 18, 0.96);
+  color: #9ca3af;
 }
 
 .panel-brand span {
