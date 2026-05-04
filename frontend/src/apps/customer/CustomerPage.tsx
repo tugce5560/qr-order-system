@@ -279,6 +279,7 @@ export default function CustomerPage() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isOrdersOpen, setIsOrdersOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [showRatingCard, setShowRatingCard] = useState(false);
   const latestTableIdRef = useRef(resolvedTable.tableId);
 
   const cartTotal = cartItems.reduce(
@@ -478,6 +479,12 @@ export default function CustomerPage() {
       void loadTableOrders();
     });
   }, [loadTableOrders]);
+
+  useEffect(() => {
+    if (canRateOrder && !hasRatedCurrentSession) {
+      setShowRatingCard(true);
+    }
+  }, [canRateOrder, hasRatedCurrentSession]);
 
   useEffect(() => {
     if (!isTableResolved) {
@@ -1105,6 +1112,45 @@ export default function CustomerPage() {
           ))}
         </div>
       </div>
+
+      {showRatingCard && !hasRatedCurrentSession && (
+        <div
+          className="rating-card-backdrop"
+          role="presentation"
+          onClick={() => setShowRatingCard(false)}
+        >
+          <section
+            className="customer-rating-card rating-card-modal"
+            aria-labelledby="customer-rating-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              className="rating-card-close"
+              type="button"
+              onClick={() => setShowRatingCard(false)}
+              aria-label="Değerlendirmeyi kapat"
+            >
+              X
+            </button>
+            <div className="customer-rating-icon" aria-hidden="true">
+              ★
+            </div>
+            <div className="customer-rating-copy">
+              <h2 id="customer-rating-title">Deneyiminizi değerlendirin</h2>
+              <span>
+                İsterseniz hız, servis ve lezzet için kısa bir puan bırakın.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={openRatingModal}
+              disabled={hasRatedCurrentSession}
+            >
+              Değerlendir
+            </button>
+          </section>
+        </div>
+      )}
 
       <section className="customer-rating-card" aria-labelledby="customer-rating-title">
         <div className="customer-rating-icon" aria-hidden="true">
