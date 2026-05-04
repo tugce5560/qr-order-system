@@ -922,6 +922,41 @@ export default function CustomerPage() {
       return;
     }
 
+    const demoOrder = createDemoOrder({
+      restaurantId: resolvedTable.restaurantId,
+      tableId: resolvedTable.tableId,
+      tableNumber: resolvedTable.tableNumber,
+      items: cartItems.map((item) => ({
+        productId: item.productId,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        note: item.note || null,
+        removedIngredients: item.removedIngredients || null,
+      })),
+    });
+
+    const customerDemoOrder: CustomerOrder = {
+      id: demoOrder.id,
+      tableId: demoOrder.tableId,
+      orderNumber: demoOrder.orderNumber,
+      status: demoOrder.status,
+      totalAmount: demoOrder.totalAmount,
+      createdAt: demoOrder.createdAt,
+      items: demoOrder.items.map((item) => ({
+        id: item.id,
+        productName: item.productName,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        note: item.note,
+      })),
+    };
+
+    setCustomerOrders((currentOrders) => [
+      customerDemoOrder,
+      ...currentOrders.filter((order) => order.id !== customerDemoOrder.id),
+    ]);
+
     try {
       setIsSubmitting(true);
       setCustomerNotice(null);
@@ -944,43 +979,10 @@ export default function CustomerPage() {
       });
       setCartItems([]);
       setIsCartOpen(false);
-      await loadTableOrders();
     } catch {
-      const demoOrder = createDemoOrder({
-        restaurantId: resolvedTable.restaurantId,
-        tableId: resolvedTable.tableId,
-        tableNumber: resolvedTable.tableNumber,
-        items: cartItems.map((item) => ({
-          productId: item.productId,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          note: item.note || null,
-          removedIngredients: item.removedIngredients || null,
-        })),
-      });
-
-      setCustomerOrders((currentOrders) => [
-        {
-          id: demoOrder.id,
-          tableId: demoOrder.tableId,
-          orderNumber: demoOrder.orderNumber,
-          status: demoOrder.status,
-          totalAmount: demoOrder.totalAmount,
-          createdAt: demoOrder.createdAt,
-          items: demoOrder.items.map((item) => ({
-            id: item.id,
-            productName: item.productName,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            note: item.note,
-          })),
-        },
-        ...currentOrders,
-      ]);
       setCustomerNotice({
         tone: "success",
-        message: "Siparişiniz mutfağa iletildi. Durumu bu ekrandan canlı takip edebilirsiniz.",
+        message: "Siparişiniz mutfağa iletildi. Garson panelinde de görünecek.",
       });
       setCartItems([]);
       setIsCartOpen(false);

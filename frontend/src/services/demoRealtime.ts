@@ -137,6 +137,17 @@ export function updateDemoOrderStatus(orderId: number, status: DemoOrderStatus) 
   );
 }
 
+export function updateDemoOrder(
+  orderId: number,
+  updates: Partial<Pick<DemoOrder, "items" | "note" | "totalAmount">>,
+) {
+  writeOrders(
+    readOrders().map((order) =>
+      order.id === orderId ? { ...order, ...updates } : order,
+    ),
+  );
+}
+
 export function subscribeDemoOrders(callback: (orders: DemoOrder[]) => void) {
   const handleChange = () => callback(readOrders());
 

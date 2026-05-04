@@ -13,6 +13,7 @@ import type {
 import {
   getDemoOrders,
   subscribeDemoOrders,
+  updateDemoOrder,
   updateDemoOrderStatus,
   type DemoOrder,
 } from "../../services/demoRealtime";
@@ -128,10 +129,26 @@ const demoWaiterOrders: WaiterOrder[] = [
 ];
 
 const demoWaiterProducts: Product[] = [
+  { id: 105, name: "Mercimek Çorbası", price: 120, ingredients: "Kırmızı mercimek, tereyağı, limon", removableIngredients: "Limon" },
+  { id: 106, name: "Patates Kızartması", price: 135, ingredients: "Çıtır patates, ev sosu", removableIngredients: "Sos" },
+  { id: 107, name: "Mozzarella Sticks", price: 165, ingredients: "Mozzarella, çıtır kaplama, dip sos", removableIngredients: "Dip sos" },
+  { id: 103, name: "Izgara Tavuk", price: 320, ingredients: "Izgara tavuk, pilav, salata", removableIngredients: "Salata,Soğan" },
+  { id: 108, name: "Köfte Porsiyon", price: 345, ingredients: "Izgara köfte, patates, köz biber", removableIngredients: "Soğan,Köz biber" },
+  { id: 109, name: "Tavuk Fajita", price: 360, ingredients: "Tavuk, biber, soğan, tortilla", removableIngredients: "Soğan,Biber" },
   { id: 101, name: "Classic Burger", price: 245, ingredients: "Dana köfte, cheddar, turşu", removableIngredients: "Soğan,Turşu" },
-  { id: 102, name: "Limonata", price: 145 },
-  { id: 103, name: "Izgara Tavuk", price: 320 },
+  { id: 110, name: "Cheeseburger", price: 275, ingredients: "Dana köfte, çift cheddar, özel sos", removableIngredients: "Soğan,Turşu,Sos" },
+  { id: 111, name: "BBQ Burger", price: 295, ingredients: "Dana köfte, bbq sos, karamelize soğan", removableIngredients: "Soğan,BBQ sos" },
+  { id: 112, name: "Margherita Pizza", price: 280, ingredients: "Domates sos, mozzarella, fesleğen", removableIngredients: "Fesleğen" },
+  { id: 113, name: "Karışık Pizza", price: 330, ingredients: "Sucuk, salam, mantar, biber, mozzarella", removableIngredients: "Mantar,Biber" },
+  { id: 114, name: "Sucuklu Pizza", price: 315, ingredients: "Sucuk, mozzarella, domates sos", removableIngredients: "Sucuk" },
+  { id: 115, name: "Su", price: 35 },
   { id: 104, name: "Ayran", price: 50 },
+  { id: 116, name: "Kola", price: 75 },
+  { id: 102, name: "Limonata", price: 145 },
+  { id: 117, name: "Türk Kahvesi", price: 85 },
+  { id: 118, name: "Sütlaç", price: 120 },
+  { id: 119, name: "Cheesecake", price: 165 },
+  { id: 120, name: "Brownie", price: 150 },
 ];
 
 const demoWaiterCalls: WaiterCall[] = [
@@ -175,6 +192,18 @@ function mergeWaiterOrdersWithDemo(orders: WaiterOrder[]) {
   ];
 }
 
+function mergeProductsWithDemo(products: Product[]) {
+  const productMap = new Map<number, Product>();
+
+  [...products, ...demoWaiterProducts].forEach((product) => {
+    productMap.set(product.id, product);
+  });
+
+  return Array.from(productMap.values()).sort((firstProduct, secondProduct) =>
+    firstProduct.name.localeCompare(secondProduct.name, "tr"),
+  );
+}
+
 type EditOrderItem = {
   productId: number;
   quantity: number;
@@ -216,7 +245,7 @@ function WaiterPage() {
 
       setTables(tablesResponse.data);
       setWaiterCalls(callsResponse.data);
-      setProducts(productsResponse.data);
+      setProducts(mergeProductsWithDemo(productsResponse.data));
       setOrders(
         mergeWaiterOrdersWithDemo(
           ordersResponse.data.filter((order) =>
@@ -228,7 +257,7 @@ function WaiterPage() {
       setError(null);
       setTables(demoWaiterTables);
       setOrders(mergeWaiterOrdersWithDemo(demoWaiterOrders));
-      setProducts(demoWaiterProducts);
+      setProducts(mergeProductsWithDemo([]));
       setWaiterCalls(demoWaiterCalls);
     } finally {
       setIsLoading(false);
@@ -390,42 +419,54 @@ function WaiterPage() {
   async function saveEditedOrder() {
     if (!editingOrder) return;
 
-    try {
-      setUpdatingOrderId(editingOrder.id);
-      await api.put(`/orders/${editingOrder.id}/items`, {
-        items: editItems,
-        orderNote: editOrderNote,
+    const updatedItems = editItems.map((item, index) => {
+      const product = products.find((currentProduct) => currentProduct.id === item.productId);
+
+      return {
+        id: editingOrder.items[index]?.id ?? Date.now() + index,
+        productId: item.productId,
+        productName: product?.name ?? "Demo Ürün",
+        quantity: item.quantity,
+        unitPrice: product?.price ?? 0,
+        note: item.note,
+        removedIngredients: item.removedIngredients,
+      };
+    });
+    const updatedTotalAmount = updatedItems.reduce(
+      (total, item) => total + item.unitPrice * item.quantity,
+      0,
+    );
+    const applyEditedOrder = () => {
+      updateDemoOrder(editingOrder.id, {
+        note: editOrderNote,
+        totalAmount: updatedTotalAmount,
+        items: updatedItems,
       });
-      closeEditModal();
-      await fetchWaiterData();
-    } catch {
-      setError(null);
       setOrders((currentOrders) =>
         currentOrders.map((order) =>
           order.id === editingOrder.id
             ? {
                 ...order,
                 note: editOrderNote,
-                totalAmount: editItems.reduce((total, item) => {
-                  const product = products.find((currentProduct) => currentProduct.id === item.productId);
-                  return total + (product?.price ?? 0) * item.quantity;
-                }, 0),
-                items: editItems.map((item, index) => {
-                  const product = products.find((currentProduct) => currentProduct.id === item.productId);
-                  return {
-                    id: index + 1,
-                    productId: item.productId,
-                    productName: product?.name ?? "Demo Ürün",
-                    quantity: item.quantity,
-                    unitPrice: product?.price ?? 0,
-                    note: item.note,
-                    removedIngredients: item.removedIngredients,
-                  };
-                }),
+                totalAmount: updatedTotalAmount,
+                items: updatedItems,
               }
             : order,
         ),
       );
+    };
+
+    try {
+      setUpdatingOrderId(editingOrder.id);
+      await api.put(`/orders/${editingOrder.id}/items`, {
+        items: editItems,
+        orderNote: editOrderNote,
+      });
+      applyEditedOrder();
+      closeEditModal();
+    } catch {
+      setError(null);
+      applyEditedOrder();
       closeEditModal();
     } finally {
       setUpdatingOrderId(null);
