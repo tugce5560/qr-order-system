@@ -91,7 +91,7 @@
   overflow: hidden;
   background:
     linear-gradient(180deg, rgba(13, 10, 7, 0.1) 0%, rgba(13, 10, 7, 0.78) 100%),
-    url("https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1400&q=82");
+    var(--customer-cover, url("https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1400&q=82"));
   background-position: center;
   background-size: cover;
   color: #fff;
@@ -237,6 +237,24 @@
   border-color: #f1d08c;
   background: #fff7e6;
   color: #7b4d00;
+}
+
+.customer-message-success {
+  border-color: #bfe4ce;
+  background: #edf9f1;
+  color: #146348;
+}
+
+.customer-message-warning {
+  border-color: #f1d08c;
+  background: #fff7e6;
+  color: #7b4d00;
+}
+
+.customer-message-error {
+  border-color: #e7b6ae;
+  background: #fff0ed;
+  color: #802b20;
 }
 
 .customer-status {

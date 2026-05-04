@@ -66,6 +66,54 @@ body {
   margin: 0;
 }
 
+.demo-session-loader {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    linear-gradient(135deg, rgba(15, 95, 122, 0.1), rgba(255, 183, 3, 0.16)),
+    #fffdf8;
+  box-sizing: border-box;
+}
+
+.demo-session-loader section {
+  width: min(420px, 100%);
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(18, 28, 38, 0.1);
+  border-radius: 20px;
+  padding: 28px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 24px 60px rgba(21, 31, 42, 0.14);
+  text-align: left;
+}
+
+.demo-session-loader span {
+  width: fit-content;
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: #eef8f4;
+  color: #0f6f54;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.demo-session-loader h1 {
+  margin: 0;
+  color: #17120f;
+  font-size: 30px;
+  line-height: 1.06;
+  letter-spacing: 0;
+  font-weight: 950;
+}
+
+.demo-session-loader p {
+  color: #746b62;
+  font-size: 15px;
+  font-weight: 750;
+}
+
 h1,
 h2 {
   font-family: var(--heading);

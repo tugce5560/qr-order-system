@@ -44,7 +44,7 @@ function formatCreatedTime(order: CustomerOrder) {
   );
 
   if (!match) {
-    return "Not available";
+    return "Saat yok";
   }
 
   const [, year, month, day, hour, minute, second] = match;
@@ -108,7 +108,7 @@ function CustomerOrdersPage() {
 
       setOrders(response.data.filter((order) => order.tableId === tableId));
     } catch {
-      setError("Orders could not be loaded.");
+      setError("Siparişler yüklenemedi.");
     } finally {
       setIsLoading(false);
     }
@@ -150,15 +150,15 @@ function CustomerOrdersPage() {
   return (
     <main className="customer-orders-page">
       <header className="orders-header">
-        <p>My Orders</p>
-        <h1>Table {getCurrentTableNumber()}</h1>
+        <p>Siparişlerim</p>
+        <h1>Masa {getCurrentTableNumber()}</h1>
       </header>
 
-      {isLoading && <p className="orders-message">Loading orders...</p>}
+      {isLoading && <p className="orders-message">Siparişler yükleniyor...</p>}
       {error && <p className="orders-message orders-error">{error}</p>}
 
       {!isLoading && orders.length === 0 && (
-        <p className="orders-empty">No orders found for this table.</p>
+        <p className="orders-empty">Bu masa için henüz sipariş bulunmuyor.</p>
       )}
 
       <section className="orders-list">
@@ -166,7 +166,7 @@ function CustomerOrdersPage() {
           <article className="order-card" key={order.id}>
             <button type="button" onClick={() => toggleOrder(order.id)}>
               <span>
-                <strong>Order {order.orderNumber}</strong>
+                <strong>Sipariş {order.orderNumber}</strong>
                 <small>{formatCreatedTime(order)}</small>
               </span>
               <span className={`order-status status-${order.status.toLowerCase()}`}>
@@ -175,7 +175,7 @@ function CustomerOrdersPage() {
             </button>
 
             <div className="order-summary">
-              <span>Total</span>
+              <span>Toplam</span>
               <strong>₺{order.totalAmount}</strong>
             </div>
 

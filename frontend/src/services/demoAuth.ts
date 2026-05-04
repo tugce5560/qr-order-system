@@ -1,5 +1,6 @@
 import { api } from "./api";
 import {
+  getAuthToken,
   getCurrentUser,
   setAuthToken,
   type UserRole,
@@ -20,23 +21,23 @@ const demoPassword = "admin123";
 const demoLoginTargets: Record<string, DemoLoginTarget> = {
   "/admin": {
     role: "RestaurantAdmin",
-    emails: ["demo.admin@qrorder.local", "admin@qrorder.local"],
+    emails: ["admin@qrorder.local", "demo.admin@qrorder.local", "admin@test.com"],
   },
   "/admin/analytics": {
     role: "RestaurantAdmin",
-    emails: ["demo.admin@qrorder.local", "admin@qrorder.local"],
+    emails: ["admin@qrorder.local", "demo.admin@qrorder.local", "admin@test.com"],
   },
   "/waiter": {
     role: "Waiter",
-    emails: ["demo.waiter@qrorder.local", "waiter@qrorder.local"],
+    emails: ["waiter@qrorder.local", "demo.waiter@qrorder.local", "waiter@test.com"],
   },
   "/kitchen": {
     role: "Kitchen",
-    emails: ["demo.kitchen@qrorder.local", "kitchen@qrorder.local"],
+    emails: ["kitchen@qrorder.local", "demo.kitchen@qrorder.local", "kitchen@test.com"],
   },
   "/super-admin": {
     role: "SuperAdmin",
-    emails: ["superadmin@qrorder.local"],
+    emails: ["superadmin@qrorder.local", "superadmin@test.com"],
   },
 };
 
@@ -52,10 +53,6 @@ export function getDemoLoginTarget(pathname: string) {
 }
 
 export async function ensureDemoAuthForPath(pathname: string) {
-  if (!isDemoAuthBypassEnabled()) {
-    return getCurrentUser();
-  }
-
   const target = getDemoLoginTarget(pathname);
 
   if (!target) {
@@ -64,7 +61,7 @@ export async function ensureDemoAuthForPath(pathname: string) {
 
   const currentUser = getCurrentUser();
 
-  if (currentUser?.role === target.role) {
+  if (getAuthToken() && currentUser?.role === target.role) {
     return currentUser;
   }
 

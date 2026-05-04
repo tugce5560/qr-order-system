@@ -51,6 +51,11 @@ type ResolvedTable = {
   buttonColor?: string | null;
 };
 
+type CustomerNotice = {
+  tone: "success" | "warning" | "error";
+  message: string;
+};
+
 type PaymentResponse = {
   billId: number;
   paidAmount: number;
@@ -114,6 +119,17 @@ const productPhotoUrls: Record<string, string> = {
   cake: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=900&q=80",
   "ice cream":
     "https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=900&q=80",
+};
+
+const restaurantCoverImages: Record<string, string> = {
+  "demo-restaurant":
+    "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1600&q=84",
+  "mavi-masa-bistro":
+    "https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=1600&q=84",
+  "kuzey-grill":
+    "https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=1600&q=84",
+  "limon-cafe":
+    "https://images.unsplash.com/photo-1521017432531-fbd92d768814?auto=format&fit=crop&w=1600&q=84",
 };
 
 function getApiErrorMessage(error: unknown, fallback: string) {
@@ -192,6 +208,14 @@ function getProductImageUrl(product: Pick<Product, "name" | "imageUrl">) {
   return photoUrl || createPlaceholderImage(product.name);
 }
 
+function getRestaurantCoverImage(restaurantSlug?: string) {
+  if (!restaurantSlug) {
+    return restaurantCoverImages["demo-restaurant"];
+  }
+
+  return restaurantCoverImages[restaurantSlug] ?? restaurantCoverImages["demo-restaurant"];
+}
+
 export default function CustomerPage() {
   const navigate = useNavigate();
   const { restaurantSlug, tableNumber } = useParams();
@@ -210,6 +234,7 @@ export default function CustomerPage() {
   const [isRequestingBill, setIsRequestingBill] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState<string | null>(null);
   const [serviceMessage, setServiceMessage] = useState<string | null>(null);
+  const [customerNotice, setCustomerNotice] = useState<CustomerNotice | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [modalQuantity, setModalQuantity] = useState(1);
@@ -315,7 +340,7 @@ export default function CustomerPage() {
         setCategories(menuResponse.data);
         setIsTableResolved(true);
       } catch {
-        setError("Table or menu could not be loaded.");
+        setError("Masa veya menü yüklenemedi. QR linkini kontrol edin.");
       } finally {
         setIsLoading(false);
       }
@@ -583,11 +608,11 @@ export default function CustomerPage() {
   ) {
     if (field === "estimatedPreparationMinutes") {
       return product.estimatedPreparationMinutes
-        ? `${product.estimatedPreparationMinutes} min`
-        : "10-15 min";
+        ? `${product.estimatedPreparationMinutes} dk`
+        : "10-15 dk";
     }
 
-    return product[field] || "Not specified";
+    return product[field] || "Belirtilmedi";
   }
 
   async function pay() {
@@ -613,13 +638,13 @@ export default function CustomerPage() {
       );
 
       setPaymentMessage(
-        `Payment successful. Paid amount: ${response.data.paidAmount}`,
+        `Ödeme başarıyla alındı. Ödenen tutar: ₺${response.data.paidAmount}`,
       );
       setCartItems([]);
       setIsCartOpen(false);
       navigate(`/receipt/${response.data.billId}`);
     } catch {
-      setPaymentMessage("Payment could not be completed.");
+      setPaymentMessage("Ödeme tamamlanamadı. Açık adisyon yoksa önce sipariş verin.");
     } finally {
       setIsPaying(false);
     }
@@ -713,11 +738,11 @@ export default function CustomerPage() {
         return nextIds;
       });
       setCanRateOrder(false);
-      setPaymentMessage("Thanks for your feedback ❤️");
+      setPaymentMessage("Değerlendirmeniz için teşekkür ederiz.");
       setShowRatingModal(false);
     } catch {
-      setRatingError("Rating could not be submitted.");
-      setPaymentMessage("Rating could not be submitted.");
+      setRatingError("Değerlendirme gönderilemedi.");
+      setPaymentMessage("Değerlendirme gönderilemedi.");
     } finally {
       setIsRatingSubmitting(false);
     }
@@ -772,7 +797,18 @@ export default function CustomerPage() {
 
   async function placeOrder() {
     if (!tableSessionToken) {
-      alert("Masa oturumu bulunamadı. Lütfen QR kodu tekrar okutun.");
+      setCustomerNotice({
+        tone: "error",
+        message: "Masa oturumu bulunamadı. Lütfen QR kodu tekrar okutun.",
+      });
+      return;
+    }
+
+    if (cartItems.length === 0) {
+      setCustomerNotice({
+        tone: "warning",
+        message: "Sipariş vermek için önce sepete ürün ekleyin.",
+      });
       return;
     }
 
@@ -780,12 +816,16 @@ export default function CustomerPage() {
       tableSessionExpiresAt &&
       new Date(tableSessionExpiresAt).getTime() <= Date.now()
     ) {
-      alert("Masa oturumunuzun süresi doldu. Lütfen QR kodu tekrar okutun.");
+      setCustomerNotice({
+        tone: "error",
+        message: "Masa oturumunuzun süresi doldu. Lütfen QR kodu tekrar okutun.",
+      });
       return;
     }
 
     try {
       setIsSubmitting(true);
+      setCustomerNotice(null);
 
       await api.post("/orders", {
         restaurantId: resolvedTable.restaurantId,
@@ -799,23 +839,28 @@ export default function CustomerPage() {
         })),
       });
 
-      alert("Order placed successfully");
+      setCustomerNotice({
+        tone: "success",
+        message: "Siparişiniz mutfağa iletildi. Durumu bu ekrandan canlı takip edebilirsiniz.",
+      });
       setCartItems([]);
       setIsCartOpen(false);
+      await loadTableOrders();
     } catch (orderError) {
-      alert(
-        getApiErrorMessage(
+      setCustomerNotice({
+        tone: "error",
+        message: getApiErrorMessage(
           orderError,
-          "Order could not be placed. Please scan the QR code again.",
+          "Sipariş gönderilemedi. Lütfen QR kodu tekrar okutun.",
         ),
-      );
+      });
     } finally {
       setIsSubmitting(false);
     }
   }
 
   if (isLoading) {
-    return <p className="customer-status">Loading menu...</p>;
+    return <p className="customer-status">Menü yükleniyor...</p>;
   }
 
   if (error) {
@@ -830,6 +875,7 @@ export default function CustomerPage() {
         ["--customer-primary" as string]: resolvedTable.primaryColor || undefined,
         ["--customer-accent" as string]: resolvedTable.accentColor || undefined,
         ["--customer-button" as string]: resolvedTable.buttonColor || undefined,
+        ["--customer-cover" as string]: `url("${getRestaurantCoverImage(restaurantSlug)}")`,
       }}
     >
       <header className="customer-topbar">
@@ -838,7 +884,7 @@ export default function CustomerPage() {
             <img src={resolvedTable.logoUrl} alt={resolvedTable.restaurantName} />
           )}
           <span>{resolvedTable.restaurantName}</span>
-          <strong>Table {resolvedTable.tableNumber}</strong>
+          <strong>Masa {resolvedTable.tableNumber}</strong>
         </div>
         <div className="customer-topbar-actions">
           <button
@@ -864,13 +910,18 @@ export default function CustomerPage() {
         <section className="customer-hero">
           <p className="customer-kicker">QR MENU</p>
           <h1>{resolvedTable.restaurantName}</h1>
-          <p className="customer-table">Table {resolvedTable.tableNumber}</p>
+          <p className="customer-table">Masa {resolvedTable.tableNumber}</p>
           <p className="customer-subtitle">
-            Fresh favorites, sent straight to your table.
+            Restoranın favorilerini keşfedin, siparişiniz doğrudan mutfağa düşsün.
           </p>
         </section>
       )}
 
+      {customerNotice && (
+        <p className={`customer-message customer-message-${customerNotice.tone}`}>
+          {customerNotice.message}
+        </p>
+      )}
       {paymentMessage && <p className="customer-message">{paymentMessage}</p>}
       {serviceMessage && <p className="customer-message">{serviceMessage}</p>}
       {orderStatusMessage && (
@@ -926,7 +977,7 @@ export default function CustomerPage() {
             <div className="customer-orders-header">
               <div>
                 <p>Canlı takip</p>
-                <h2>My Orders</h2>
+              <h2>Siparişlerim</h2>
               </div>
               <span>{customerOrders.length} sipariş</span>
             </div>
@@ -1056,13 +1107,13 @@ export default function CustomerPage() {
           <div className="cart-header">
             <div>
               <p>Your order</p>
-              <h2>Your Cart</h2>
+              <h2>Sepetiniz</h2>
             </div>
             <span>{cartItemCount} items</span>
           </div>
 
           {cartItems.length === 0 ? (
-            <p className="empty-cart">Your cart is empty.</p>
+            <p className="empty-cart">Sepetiniz boş.</p>
           ) : (
             <>
               <div className="cart-items">
@@ -1079,9 +1130,9 @@ export default function CustomerPage() {
                     <div className="cart-item-main">
                       <div>
                         <h3>{item.name}</h3>
-                        <p>₺{item.price} each</p>
+                        <p>₺{item.price} / adet</p>
                         {item.note && (
-                          <p className="cart-item-note">Note: {item.note}</p>
+                          <p className="cart-item-note">Not: {item.note}</p>
                         )}
                         {item.removedIngredients && (
                           <p className="cart-item-note">
@@ -1126,7 +1177,7 @@ export default function CustomerPage() {
                             )
                           }
                         >
-                          Remove
+                          Sil
                         </button>
                       </div>
                     </div>
@@ -1146,7 +1197,7 @@ export default function CustomerPage() {
                   onClick={placeOrder}
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Placing order..." : "Place Order"}
+                  {isSubmitting ? "Sipariş gönderiliyor..." : "Sipariş Ver"}
                 </button>
                 <button
                   className="pay-button"
@@ -1154,7 +1205,7 @@ export default function CustomerPage() {
                   onClick={pay}
                   disabled={isPaying}
                 >
-                  {isPaying ? "Paying..." : "Pay"}
+                  {isPaying ? "Ödeniyor..." : "Öde"}
                 </button>
               </div>
             </>
@@ -1169,7 +1220,7 @@ export default function CustomerPage() {
             <strong>₺{cartTotal}</strong>
           </div>
           <button type="button" onClick={() => setIsCartOpen(true)}>
-            View Cart
+            Sepeti Gör
           </button>
         </div>
       )}
@@ -1201,7 +1252,7 @@ export default function CustomerPage() {
               className="product-modal-close"
               type="button"
               onClick={closeProductModal}
-              aria-label="Close product detail"
+              aria-label="Ürün detayını kapat"
             >
               X
             </button>
@@ -1225,23 +1276,23 @@ export default function CustomerPage() {
 
               <dl className="product-detail-list">
                 <div>
-                  <dt>Calories</dt>
+                  <dt>Kalori</dt>
                   <dd>{getProductDetailValue(selectedProduct, "calories")}</dd>
                 </div>
                 <div>
-                  <dt>Allergens</dt>
+                  <dt>Alerjenler</dt>
                   <dd>{getProductDetailValue(selectedProduct, "allergens")}</dd>
                 </div>
                 <div>
-                  <dt>Ingredients</dt>
+                  <dt>İçindekiler</dt>
                   <dd>
                     {getProductIngredients(selectedProduct).length > 0
-                      ? "Tap ingredients to remove"
+                      ? "Çıkarmak istediğiniz malzemelere dokunun"
                       : getProductDetailValue(selectedProduct, "ingredients")}
                   </dd>
                 </div>
                 <div>
-                  <dt>Preparation</dt>
+                  <dt>Hazırlık</dt>
                   <dd>
                     {getProductDetailValue(
                       selectedProduct,
@@ -1274,11 +1325,11 @@ export default function CustomerPage() {
               )}
 
               <label className="product-note-field">
-                <span>Note</span>
+                <span>Not</span>
                 <textarea
                   value={modalNote}
                   onChange={(event) => setModalNote(event.target.value)}
-                  placeholder="Add a note for the kitchen"
+                  placeholder="Mutfak için not ekleyin"
                 />
               </label>
 
@@ -1303,7 +1354,7 @@ export default function CustomerPage() {
                   </button>
                 </div>
                 <button type="button" onClick={addSelectedProductToCart}>
-                  Add to Cart
+                  Sepete Ekle
                 </button>
               </div>
             </div>
@@ -1332,29 +1383,29 @@ export default function CustomerPage() {
             >
               X
             </button>
-            <p className="rating-kicker">Your order was served</p>
-            <h2 id="rating-modal-title">How was your experience?</h2>
+            <p className="rating-kicker">Siparişiniz servis edildi</p>
+            <h2 id="rating-modal-title">Deneyiminiz nasıldı?</h2>
             <p className="rating-helper">
-              Your feedback helps us improve the next visit.
+              Geri bildiriminiz bir sonraki ziyaretinizi iyileştirmemize yardımcı olur.
             </p>
 
             <div className="rating-fields">
-              {renderRatingInput("Speed", "⚡", speedRating, setSpeedRating)}
-              {renderRatingInput("Taste", "🍔", tasteRating, setTasteRating)}
+              {renderRatingInput("Hız", "★", speedRating, setSpeedRating)}
+              {renderRatingInput("Lezzet", "★", tasteRating, setTasteRating)}
               {renderRatingInput(
-                "Service",
-                "🤝",
+                "Servis",
+                "★",
                 serviceRating,
                 setServiceRating,
               )}
             </div>
 
             <label className="rating-comment-field">
-              <span>Comment</span>
+              <span>Yorum</span>
               <textarea
                 value={ratingComment}
                 onChange={(event) => setRatingComment(event.target.value)}
-                placeholder="Tell us more..."
+                placeholder="Bize biraz daha anlatın..."
               />
             </label>
 
@@ -1366,15 +1417,15 @@ export default function CustomerPage() {
               onClick={submitRating}
               disabled={isRatingSubmitting}
             >
-              {isRatingSubmitting ? "Submitting..." : "Submit"}
+              {isRatingSubmitting ? "Gönderiliyor..." : "Gönder"}
             </button>
           </section>
         </div>
       )}
 
       <footer className="customer-footer">
-        <span>Need help? Call our staff.</span>
-        <span>Thank you for dining with us!</span>
+        <span>Yardıma mı ihtiyacınız var? Ekibimizi çağırabilirsiniz.</span>
+        <span>Bizi tercih ettiğiniz için teşekkür ederiz.</span>
       </footer>
     </main>
   );

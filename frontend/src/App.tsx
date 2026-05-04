@@ -1,4 +1,5 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { useEffect, useState, type ReactNode } from 'react'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import HomePage from './apps/HomePage'
 import AdminPage from './apps/admin/AdminPage'
 import CustomerOrdersPage from './apps/customer/CustomerOrdersPage'
@@ -9,6 +10,55 @@ import SuperAdminPage from './apps/super-admin/SuperAdminPage'
 import WaiterPage from './apps/waiter/WaiterPage'
 import NotFound from './components/NotFound'
 import PanelNavigation from './components/PanelNavigation'
+import { ensureDemoAuthForPath, getDemoLoginTarget } from './services/demoAuth'
+
+function DemoPanelSession({ children }: { children: ReactNode }) {
+  const location = useLocation()
+  const [isPreparingSession, setIsPreparingSession] = useState(
+    () => getDemoLoginTarget(location.pathname) !== null,
+  )
+
+  useEffect(() => {
+    let isMounted = true
+    const target = getDemoLoginTarget(location.pathname)
+
+    if (!target) {
+      return
+    }
+
+    ensureDemoAuthForPath(location.pathname).finally(() => {
+      if (isMounted) {
+        setIsPreparingSession(false)
+      }
+    })
+
+    return () => {
+      isMounted = false
+    }
+  }, [location.pathname])
+
+  if (isPreparingSession) {
+    return (
+      <main className="demo-session-loader">
+        <section>
+          <span>QR Order</span>
+          <h1>Demo oturumu hazırlanıyor</h1>
+          <p>Panel gerçek API verileriyle açılıyor.</p>
+        </section>
+      </main>
+    )
+  }
+
+  return <>{children}</>
+}
+
+function PanelShell({ children }: { children: ReactNode }) {
+  return (
+    <DemoPanelSession>
+      <PanelNavigation>{children}</PanelNavigation>
+    </DemoPanelSession>
+  )
+}
 
 function App() {
   return (
@@ -17,9 +67,9 @@ function App() {
       <Route
         path="/customer"
         element={
-          <PanelNavigation>
+          <PanelShell>
             <CustomerPage />
-          </PanelNavigation>
+          </PanelShell>
         }
       />
       <Route path="/customer/orders" element={<CustomerOrdersPage />} />
@@ -31,25 +81,25 @@ function App() {
       <Route
         path="/menu"
         element={
-          <PanelNavigation>
+          <PanelShell>
             <CustomerPage />
-          </PanelNavigation>
+          </PanelShell>
         }
       />
       <Route
         path="/kitchen"
         element={
-          <PanelNavigation>
+          <PanelShell>
             <KitchenBoardPage />
-          </PanelNavigation>
+          </PanelShell>
         }
       />
       <Route
         path="/waiter"
         element={
-          <PanelNavigation>
+          <PanelShell>
             <WaiterPage />
-          </PanelNavigation>
+          </PanelShell>
         }
       />
       <Route path="/login" element={<Navigate to="/admin" replace />} />
@@ -57,25 +107,25 @@ function App() {
       <Route
         path="/admin"
         element={
-          <PanelNavigation>
+          <PanelShell>
             <AdminPage />
-          </PanelNavigation>
+          </PanelShell>
         }
       />
       <Route
         path="/admin/analytics"
         element={
-          <PanelNavigation>
+          <PanelShell>
             <AdminPage />
-          </PanelNavigation>
+          </PanelShell>
         }
       />
       <Route
         path="/super-admin"
         element={
-          <PanelNavigation>
+          <PanelShell>
             <SuperAdminPage />
-          </PanelNavigation>
+          </PanelShell>
         }
       />
       <Route path="/access-denied" element={<Navigate to="/admin" replace />} />

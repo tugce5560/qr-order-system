@@ -111,6 +111,16 @@ export function decodeAuthToken(token: string): AuthUser | null {
 }
 
 export function getCurrentUser() {
+  const token = getAuthToken();
+
+  if (token) {
+    const tokenUser = decodeAuthToken(token);
+
+    if (tokenUser) {
+      return tokenUser;
+    }
+  }
+
   return bypassUser;
 }
 
