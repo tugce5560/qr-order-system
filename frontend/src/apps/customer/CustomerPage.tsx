@@ -261,6 +261,7 @@ export default function CustomerPage() {
   );
   const [isTableResolved, setIsTableResolved] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isOrdersOpen, setIsOrdersOpen] = useState(false);
   const latestTableIdRef = useRef(resolvedTable.tableId);
 
   const cartTotal = cartItems.reduce(
@@ -558,7 +559,7 @@ export default function CustomerPage() {
       "customerTableNumber",
       String(resolvedTable.tableNumber),
     );
-    navigate("/customer/orders");
+    setIsOrdersOpen(true);
   }
 
   function addSelectedProductToCart() {
@@ -869,7 +870,7 @@ export default function CustomerPage() {
 
   return (
     <main
-      className={isCartOpen ? "customer-page cart-view-open" : "customer-page"}
+      className="customer-page"
       style={{
         background: resolvedTable.menuBackgroundColor || undefined,
         ["--customer-primary" as string]: resolvedTable.primaryColor || undefined,
@@ -894,28 +895,24 @@ export default function CustomerPage() {
           >
             Siparişlerim
           </button>
-          {isCartOpen && (
-            <button
-              className="customer-menu-link"
-              type="button"
-              onClick={() => setIsCartOpen(false)}
-            >
-              Menu
-            </button>
-          )}
         </div>
       </header>
 
-      {!isCartOpen && (
-        <section className="customer-hero">
-          <p className="customer-kicker">QR MENU</p>
-          <h1>{resolvedTable.restaurantName}</h1>
-          <p className="customer-table">Masa {resolvedTable.tableNumber}</p>
-          <p className="customer-subtitle">
-            Restoranın favorilerini keşfedin, siparişiniz doğrudan mutfağa düşsün.
-          </p>
-        </section>
-      )}
+      <section className="customer-hero">
+        <div className="customer-hero-logo">
+          {resolvedTable.logoUrl ? (
+            <img src={resolvedTable.logoUrl} alt={resolvedTable.restaurantName} />
+          ) : (
+            <span>{resolvedTable.restaurantName.slice(0, 1)}</span>
+          )}
+        </div>
+        <p className="customer-kicker">QR Menü</p>
+        <h1>{resolvedTable.restaurantName}</h1>
+        <p className="customer-table">Masa {resolvedTable.tableNumber}</p>
+        <p className="customer-subtitle">
+          Hoş geldiniz. Favorilerinizi seçin, siparişiniz doğrudan mutfağa iletilsin.
+        </p>
+      </section>
 
       {customerNotice && (
         <p className={`customer-message customer-message-${customerNotice.tone}`}>
@@ -930,8 +927,27 @@ export default function CustomerPage() {
         </p>
       )}
 
-      {!isCartOpen && categories.length > 0 && (
-        <nav className="category-tabs" aria-label="Menu categories">
+      <section className="customer-quick-actions" aria-label="Masa aksiyonları">
+        <button type="button" onClick={goToMyOrders}>
+          <span>{customerOrders.length}</span>
+          Siparişlerim
+        </button>
+        <button type="button" onClick={callWaiter} disabled={isCallingWaiter}>
+          <span>•</span>
+          {isCallingWaiter ? "Çağrılıyor" : "Garson Çağır"}
+        </button>
+        <button
+          type="button"
+          onClick={requestBill}
+          disabled={isRequestingBill || !hasBillableOrders}
+        >
+          <span>₺</span>
+          {isRequestingBill ? "Gönderiliyor" : "Hesap İste"}
+        </button>
+      </section>
+
+      {categories.length > 0 && (
+        <nav className="category-tabs" aria-label="Menü kategorileri">
           {categories.map((category) => (
             <button
               key={category.id}
@@ -945,112 +961,7 @@ export default function CustomerPage() {
       )}
 
       <div className="customer-content">
-        {!isCartOpen && (
         <div className="menu-sections">
-          <section className="customer-service-panel">
-            <div>
-              <p>Servis</p>
-              <h2>Yardım mı lazım?</h2>
-              <span>Masanızdan ayrılmadan ekibe ulaşın.</span>
-            </div>
-            <div className="customer-service-actions">
-              <button
-                className="call-waiter-button"
-                type="button"
-                onClick={callWaiter}
-                disabled={isCallingWaiter}
-              >
-                {isCallingWaiter ? "Çağrılıyor..." : "Garson Çağır"}
-              </button>
-              <button
-                className="request-bill-button"
-                type="button"
-                onClick={requestBill}
-                disabled={isRequestingBill || !hasBillableOrders}
-              >
-                {isRequestingBill ? "Gönderiliyor..." : "Hesap İste"}
-              </button>
-            </div>
-          </section>
-
-          <section className="customer-orders-panel">
-            <div className="customer-orders-header">
-              <div>
-                <p>Canlı takip</p>
-              <h2>Siparişlerim</h2>
-              </div>
-              <span>{customerOrders.length} sipariş</span>
-            </div>
-
-            {customerOrders.length === 0 ? (
-              <p className="customer-orders-empty">
-                Henüz aktif siparişiniz yok.
-              </p>
-            ) : (
-              <div className="customer-order-list">
-                {customerOrders.map((order) => {
-                  const currentStepIndex = getStatusStepIndex(order.status);
-
-                  return (
-                    <article className="customer-order-card" key={order.id}>
-                      <div className="customer-order-top">
-                        <div>
-                          <h3>#{order.orderNumber}</h3>
-                          <span
-                            className={`customer-order-status status-${order.status.toLowerCase()}`}
-                          >
-                            {getStatusLabel(order.status)}
-                          </span>
-                        </div>
-                        <strong>₺{order.totalAmount}</strong>
-                      </div>
-
-                      {order.status === "Cancelled" ? (
-                        <div className="cancelled-order-state">
-                          Bu sipariş iptal edildi.
-                        </div>
-                      ) : (
-                        <div className="order-stepper" aria-label="Order status">
-                          {orderStatusSteps.map((step, index) => (
-                            <div
-                              className={
-                                index <= currentStepIndex
-                                  ? "order-step active"
-                                  : "order-step"
-                              }
-                              key={step}
-                            >
-                              <span />
-                              <p>{getStatusLabel(step)}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      <div className="customer-order-items">
-                        {order.items.map((item) => (
-                          <div className="customer-order-item-row" key={item.id}>
-                            <div>
-                              <span>
-                                {item.quantity} x {item.productName}
-                              </span>
-                              <strong>₺{item.unitPrice * item.quantity}</strong>
-                            </div>
-                            {item.note && (
-                              <p className="customer-order-item-note">
-                                {item.note}
-                              </p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-
           {categories.map((category) => (
             <section
               className="menu-category"
@@ -1059,7 +970,7 @@ export default function CustomerPage() {
             >
               <div className="menu-category-heading">
                 <h2>{category.name}</h2>
-                <span>{category.products.length} items</span>
+                <span>{category.products.length} ürün</span>
               </div>
 
               <div className="product-list">
@@ -1078,7 +989,7 @@ export default function CustomerPage() {
                       <h3>{product.name}</h3>
                       <p>
                         {product.description ||
-                          "Chef-prepared and ready for your table."}
+                          "Şefin önerisi, masanız için taze hazırlanır."}
                       </p>
                       <div className="product-card-footer">
                         <strong>₺{product.price}</strong>
@@ -1089,7 +1000,7 @@ export default function CustomerPage() {
                             event.stopPropagation();
                             addToCart(product);
                           }}
-                          aria-label={`Add ${product.name} to cart`}
+                          aria-label={`${product.name} sepete ekle`}
                         >
                           +
                         </button>
@@ -1101,15 +1012,34 @@ export default function CustomerPage() {
             </section>
           ))}
         </div>
-        )}
+      </div>
 
-        <section className={isCartOpen ? "cart-panel cart-page" : "cart-panel"}>
+      {isCartOpen && (
+        <div
+          className="cart-drawer-backdrop"
+          role="presentation"
+          onClick={() => setIsCartOpen(false)}
+        >
+          <section
+            className="cart-panel cart-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cart-title"
+            onClick={(event) => event.stopPropagation()}
+          >
           <div className="cart-header">
             <div>
-              <p>Your order</p>
-              <h2>Sepetiniz</h2>
+              <p>Sipariş özeti</p>
+              <h2 id="cart-title">Sepetim</h2>
             </div>
-            <span>{cartItemCount} items</span>
+            <button
+              className="drawer-close-button"
+              type="button"
+              onClick={() => setIsCartOpen(false)}
+              aria-label="Sepeti kapat"
+            >
+              X
+            </button>
           </div>
 
           {cartItems.length === 0 ? (
@@ -1120,7 +1050,7 @@ export default function CustomerPage() {
                 {cartItems.map((item) => (
                   <article
                     className="cart-item"
-                    key={`${item.productId}-${item.note}`}
+                    key={`${item.productId}-${item.note}-${item.removedIngredients}`}
                   >
                     <img
                       className="cart-item-image"
@@ -1186,7 +1116,7 @@ export default function CustomerPage() {
               </div>
 
               <div className="cart-total">
-                <span>Total</span>
+                <span>Toplam</span>
                 <strong>₺{cartTotal}</strong>
               </div>
 
@@ -1210,20 +1140,118 @@ export default function CustomerPage() {
               </div>
             </>
           )}
-        </section>
-      </div>
+          </section>
+        </div>
+      )}
 
-      {!isCartOpen && (
-        <div className="cart-bottom-bar" role="region" aria-label="Cart summary">
+      {isOrdersOpen && (
+        <div
+          className="orders-drawer-backdrop"
+          role="presentation"
+          onClick={() => setIsOrdersOpen(false)}
+        >
+          <section
+            className="customer-orders-panel orders-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="orders-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="customer-orders-header">
+              <div>
+                <p>Canlı takip</p>
+                <h2 id="orders-title">Siparişlerim</h2>
+              </div>
+              <button
+                className="drawer-close-button"
+                type="button"
+                onClick={() => setIsOrdersOpen(false)}
+                aria-label="Siparişlerimi kapat"
+              >
+                X
+              </button>
+            </div>
+
+            {customerOrders.length === 0 ? (
+              <p className="customer-orders-empty">
+                Henüz aktif siparişiniz yok.
+              </p>
+            ) : (
+              <div className="customer-order-list">
+                {customerOrders.map((order) => {
+                  const currentStepIndex = getStatusStepIndex(order.status);
+
+                  return (
+                    <article className="customer-order-card" key={order.id}>
+                      <div className="customer-order-top">
+                        <div>
+                          <h3>#{order.orderNumber}</h3>
+                          <span
+                            className={`customer-order-status status-${order.status.toLowerCase()}`}
+                          >
+                            {getStatusLabel(order.status)}
+                          </span>
+                        </div>
+                        <strong>₺{order.totalAmount}</strong>
+                      </div>
+
+                      {order.status === "Cancelled" ? (
+                        <div className="cancelled-order-state">
+                          Bu sipariş iptal edildi.
+                        </div>
+                      ) : (
+                        <div className="order-stepper" aria-label="Sipariş durumu">
+                          {orderStatusSteps.map((step, index) => (
+                            <div
+                              className={
+                                index <= currentStepIndex
+                                  ? "order-step active"
+                                  : "order-step"
+                              }
+                              key={step}
+                            >
+                              <span />
+                              <p>{getStatusLabel(step)}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="customer-order-items">
+                        {order.items.map((item) => (
+                          <div className="customer-order-item-row" key={item.id}>
+                            <div>
+                              <span>
+                                {item.quantity} x {item.productName}
+                              </span>
+                              <strong>₺{item.unitPrice * item.quantity}</strong>
+                            </div>
+                            {item.note && (
+                              <p className="customer-order-item-note">
+                                {item.note}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </div>
+      )}
+
+      <div className="cart-bottom-bar" role="region" aria-label="Sepet özeti">
           <div>
-            <span>{cartItemCount} items</span>
+            <span>{cartItemCount} ürün</span>
             <strong>₺{cartTotal}</strong>
           </div>
           <button type="button" onClick={() => setIsCartOpen(true)}>
-            Sepeti Gör
+            Sepetim
           </button>
-        </div>
-      )}
+      </div>
 
       {canRateOrder && !hasRatedCurrentSession && !showRatingModal && (
         <button
@@ -1266,7 +1294,7 @@ export default function CustomerPage() {
                 <h2 id="product-detail-title">{selectedProduct.name}</h2>
                 <p className="product-modal-description">
                   {selectedProduct.description ||
-                    "Chef-prepared and ready for your table."}
+                    "Şefin önerisi, masanız için taze hazırlanır."}
                 </p>
               </div>
 
@@ -1379,7 +1407,7 @@ export default function CustomerPage() {
               className="rating-modal-close"
               type="button"
               onClick={() => setShowRatingModal(false)}
-              aria-label="Close rating modal"
+              aria-label="Değerlendirmeyi kapat"
             >
               X
             </button>
