@@ -822,3 +822,50 @@
   background: rgba(248, 113, 113, 0.18);
   color: #fecaca;
 }
+
+/* Final readability guard for kitchen cards, especially New orders. */
+.kitchen-order-card,
+.kitchen-order-card.is-new,
+.kitchen-order-card.is-urgent,
+.kitchen-order-card.is-critical {
+  border-color: rgba(226, 232, 240, 0.14);
+  background:
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.14), transparent 34%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(17, 24, 39, 0.95));
+  color: #f8fafc;
+}
+
+.kitchen-order-card.is-new {
+  border-color: rgba(96, 165, 250, 0.42);
+}
+
+.kitchen-order-card.is-critical {
+  border-color: rgba(248, 113, 113, 0.48);
+}
+
+.kitchen-order-card-header h3,
+.kitchen-order-card h3,
+.kitchen-order-items span,
+.kitchen-order-items strong,
+.kitchen-order-facts dd,
+.kitchen-order-actions span,
+.kitchen-order-actions > strong {
+  color: #f8fafc;
+}
+
+.kitchen-order-facts dt,
+.kitchen-order-items small {
+  color: #cbd5e1;
+}
+
+.kitchen-order-items li,
+.kitchen-order-facts div {
+  border-color: rgba(226, 232, 240, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.kitchen-order-items strong {
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  background: rgba(245, 158, 11, 0.16);
+  color: #fed7aa;
+}
