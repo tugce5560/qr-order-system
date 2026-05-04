@@ -219,7 +219,32 @@ public class OrdersController(
         var orderPayload = ToOrderEventPayload(order, null, null, table.TableNumber);
         await orderHubContext.Clients.All.SendAsync("OrderCreated", orderPayload);
         await orderHubContext.Clients.All.SendAsync("OrderUpdated", orderPayload);
+        await orderHubContext.Clients.Group($"restaurant:{request.RestaurantId}").SendAsync("OrderCreated", orderPayload);
+        await orderHubContext.Clients.Group($"restaurant:{request.RestaurantId}").SendAsync("OrderUpdated", orderPayload);
+        await orderHubContext.Clients.Group($"restaurant:{request.RestaurantId}:kitchen").SendAsync("OrderCreated", orderPayload);
+        await orderHubContext.Clients.Group($"restaurant:{request.RestaurantId}:waiter").SendAsync("OrderCreated", orderPayload);
+        await orderHubContext.Clients.Group($"restaurant:{request.RestaurantId}:restaurantadmin").SendAsync("OrderCreated", orderPayload);
         await orderHubContext.Clients.All.SendAsync("NotificationCreated", new
+        {
+            Type = "OrderCreated",
+            Title = "Yeni sipariş geldi",
+            Description = $"{order.OrderNumber} mutfağa düştü.",
+            order.RestaurantId,
+            order.TableId,
+            table.TableNumber,
+            CreatedAt = order.CreatedAt
+        });
+        await orderHubContext.Clients.Group($"restaurant:{request.RestaurantId}:kitchen").SendAsync("NotificationCreated", new
+        {
+            Type = "OrderCreated",
+            Title = "Yeni sipariş geldi",
+            Description = $"{order.OrderNumber} mutfağa düştü.",
+            order.RestaurantId,
+            order.TableId,
+            table.TableNumber,
+            CreatedAt = order.CreatedAt
+        });
+        await orderHubContext.Clients.Group($"restaurant:{request.RestaurantId}:waiter").SendAsync("NotificationCreated", new
         {
             Type = "OrderCreated",
             Title = "Yeni sipariş geldi",
@@ -283,7 +308,37 @@ public class OrdersController(
         var orderPayload = ToOrderEventPayload(order, null, null, order.Table?.TableNumber);
         await orderHubContext.Clients.All.SendAsync("OrderUpdated", orderPayload);
         await orderHubContext.Clients.All.SendAsync("OrderStatusUpdated", orderPayload);
+        await orderHubContext.Clients.Group($"restaurant:{restaurantId}").SendAsync("OrderUpdated", orderPayload);
+        await orderHubContext.Clients.Group($"restaurant:{restaurantId}").SendAsync("OrderStatusUpdated", orderPayload);
+        await orderHubContext.Clients.Group($"restaurant:{restaurantId}:kitchen").SendAsync("OrderUpdated", orderPayload);
+        await orderHubContext.Clients.Group($"restaurant:{restaurantId}:kitchen").SendAsync("OrderStatusUpdated", orderPayload);
+        await orderHubContext.Clients.Group($"restaurant:{restaurantId}:waiter").SendAsync("OrderUpdated", orderPayload);
+        await orderHubContext.Clients.Group($"restaurant:{restaurantId}:waiter").SendAsync("OrderStatusUpdated", orderPayload);
+        await orderHubContext.Clients.Group($"restaurant:{restaurantId}:restaurantadmin").SendAsync("OrderUpdated", orderPayload);
+        await orderHubContext.Clients.Group($"restaurant:{restaurantId}:restaurantadmin").SendAsync("OrderStatusUpdated", orderPayload);
         await orderHubContext.Clients.All.SendAsync("NotificationCreated", new
+        {
+            Type = "OrderStatusUpdated",
+            Title = "Sipariş durumu değişti",
+            Description = $"{order.OrderNumber} durumu {order.Status} oldu.",
+            order.RestaurantId,
+            order.TableId,
+            TableNumber = order.Table?.TableNumber,
+            Message = $"{order.OrderNumber} durumu {order.Status} oldu.",
+            CreatedAt = DateTime.UtcNow
+        });
+        await orderHubContext.Clients.Group($"restaurant:{restaurantId}:kitchen").SendAsync("NotificationCreated", new
+        {
+            Type = "OrderStatusUpdated",
+            Title = "Sipariş durumu değişti",
+            Description = $"{order.OrderNumber} durumu {order.Status} oldu.",
+            order.RestaurantId,
+            order.TableId,
+            TableNumber = order.Table?.TableNumber,
+            Message = $"{order.OrderNumber} durumu {order.Status} oldu.",
+            CreatedAt = DateTime.UtcNow
+        });
+        await orderHubContext.Clients.Group($"restaurant:{restaurantId}:waiter").SendAsync("NotificationCreated", new
         {
             Type = "OrderStatusUpdated",
             Title = "Sipariş durumu değişti",

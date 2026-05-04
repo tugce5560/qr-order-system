@@ -961,7 +961,7 @@ export default function CustomerPage() {
       setIsSubmitting(true);
       setCustomerNotice(null);
 
-      await api.post("/orders", {
+      const response = await api.post("/orders", {
         restaurantId: resolvedTable.restaurantId,
         tableId: resolvedTable.tableId,
         tableSessionToken,
@@ -973,6 +973,19 @@ export default function CustomerPage() {
         })),
       });
 
+      // Gerçek sipariş oluşturuldu, demo siparişi güncelle
+      const realOrderId = response.data.id;
+      const realOrderNumber = `#T${resolvedTable.tableNumber}-${realOrderId.toString().padStart(4, '0')}`;
+
+      setCustomerOrders((currentOrders) => [
+        {
+          ...customerDemoOrder,
+          id: realOrderId,
+          orderNumber: realOrderNumber,
+        },
+        ...currentOrders.filter((order) => order.id !== customerDemoOrder.id),
+      ]);
+
       setCustomerNotice({
         tone: "success",
         message: "Siparişiniz mutfağa iletildi. Durumu bu ekrandan canlı takip edebilirsiniz.",
@@ -980,6 +993,7 @@ export default function CustomerPage() {
       setCartItems([]);
       setIsCartOpen(false);
     } catch {
+      // API çağrısı başarısız olursa demo siparişi tut
       setCustomerNotice({
         tone: "success",
         message: "Siparişiniz mutfağa iletildi. Garson panelinde de görünecek.",
