@@ -12,6 +12,19 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
+  const publicCustomerPath =
+    typeof window !== "undefined" &&
+    (
+      window.location.pathname.startsWith("/customer") ||
+      window.location.pathname.startsWith("/receipt") ||
+      window.location.pathname.startsWith("/payment-result")
+    );
+
+  if (publicCustomerPath) {
+    delete config.headers.Authorization;
+    return config;
+  }
+
   const token = getAuthToken();
 
   if (token) {
