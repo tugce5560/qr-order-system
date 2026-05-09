@@ -769,6 +769,21 @@ function AdminPage() {
         throw new Error("Restoran veya şube bilgisi bulunamadı.");
       }
 
+      const mockItems = products.slice(0, 2).map((product, index) => ({
+        name: product.name,
+        quantity: index === 0 ? 2 : 1,
+        unitPrice: product.price,
+      }));
+      const fallbackItems = [
+        { name: "Test Ürün", quantity: 2, unitPrice: 150 },
+        { name: "Test İçecek", quantity: 1, unitPrice: 30 },
+      ];
+      const items = mockItems.length > 0 ? mockItems : fallbackItems;
+      const totalAmount = items.reduce(
+        (total, item) => total + item.quantity * item.unitPrice,
+        0,
+      );
+
       const response = await api.post<ExternalOrder>("/external-orders/mock", {
         restaurantId: restaurant.id,
         branchId,
@@ -777,11 +792,8 @@ function AdminPage() {
         customerName: "Test Müşteri",
         customerPhone: "05555555555",
         deliveryAddress: "Test Mahallesi Test Sokak No:1",
-        items: [
-          { name: "Hamburger", quantity: 2, unitPrice: 150 },
-          { name: "Ayran", quantity: 1, unitPrice: 30 },
-        ],
-        totalAmount: 330,
+        items,
+        totalAmount,
         note: "Soğan olmasın",
       });
 
