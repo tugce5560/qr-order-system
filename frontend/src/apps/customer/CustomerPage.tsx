@@ -334,6 +334,21 @@ export default function CustomerPage() {
     sessionStorage.getItem(`customerRatedTable:${resolvedTable.tableId}`) ===
       "true";
 
+  async function createTableSession(tableContext: ResolvedTable) {
+    const tableSessionResponse = await api.post<TableSessionResponse>(
+      "/public/table-session",
+      {
+        restaurantId: tableContext.restaurantId,
+        tableId: tableContext.tableId,
+      },
+    );
+
+    setTableSessionToken(tableSessionResponse.data.token);
+    setTableSessionExpiresAt(tableSessionResponse.data.expiresAt);
+
+    return tableSessionResponse.data.token;
+  }
+
   useEffect(() => {
     async function loadCustomerMenu() {
       try {
@@ -379,16 +394,7 @@ export default function CustomerPage() {
           `/menu/${tableContext.restaurantId}`,
         );
 
-        const tableSessionResponse = await api.post<TableSessionResponse>(
-          "/public/table-session",
-          {
-            restaurantId: tableContext.restaurantId,
-            tableId: tableContext.tableId,
-          },
-        );
-
-        setTableSessionToken(tableSessionResponse.data.token);
-        setTableSessionExpiresAt(tableSessionResponse.data.expiresAt);
+        await createTableSession(tableContext);
         setCategories(menuResponse.data);
         setIsTableResolved(true);
       } catch {
@@ -1054,10 +1060,12 @@ export default function CustomerPage() {
       setIsSubmitting(true);
       setCustomerNotice(null);
 
+      const freshTableSessionToken = await createTableSession(resolvedTable);
+
       const response = await api.post<{ id?: number; orderId?: number }>("/orders", {
         restaurantId: resolvedTable.restaurantId,
         tableId: resolvedTable.tableId,
-        tableSessionToken,
+        tableSessionToken: freshTableSessionToken,
         items: cartItems.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
@@ -1079,7 +1087,7 @@ export default function CustomerPage() {
           orderId: realOrderId,
           provider: paymentOption,
           currency: "TRY",
-          tableSessionToken,
+          tableSessionToken: freshTableSessionToken,
         });
         nextPayment = paymentResponse.data;
       }
