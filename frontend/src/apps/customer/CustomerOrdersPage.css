@@ -130,6 +130,21 @@
   color: #9c2f22;
 }
 
+.payment-paid {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.payment-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.payment-failed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
 .order-summary,
 .order-line {
   display: flex;

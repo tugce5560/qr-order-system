@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QrOrderSystem.Api.Data;
@@ -11,9 +12,11 @@ using QrOrderSystem.Api.Data;
 namespace QrOrderSystem.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260508233427_AddPaymentSystem")]
+    partial class AddPaymentSystem
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -408,10 +411,6 @@ namespace QrOrderSystem.Api.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
-                    b.Property<string>("ProviderPaymentId")
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
-
                     b.Property<int>("RestaurantId")
                         .HasColumnType("integer");
 
@@ -422,10 +421,6 @@ namespace QrOrderSystem.Api.Migrations
 
                     b.Property<int?>("TableId")
                         .HasColumnType("integer");
-
-                    b.Property<string>("Token")
-                        .HasMaxLength(160)
-                        .HasColumnType("character varying(160)");
 
                     b.Property<string>("TransactionId")
                         .HasMaxLength(120)
@@ -443,13 +438,6 @@ namespace QrOrderSystem.Api.Migrations
                     b.HasIndex("RestaurantId");
 
                     b.HasIndex("TableId");
-
-                    b.HasIndex("Token")
-                        .IsUnique();
-
-                    b.HasIndex("BillId", "Provider", "Status")
-                        .IsUnique()
-                        .HasFilter("\"BillId\" IS NOT NULL AND \"Provider\" = 'Iyzico' AND \"Status\" = 'Pending'");
 
                     b.ToTable("Payments");
                 });

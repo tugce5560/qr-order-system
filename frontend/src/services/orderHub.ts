@@ -13,6 +13,10 @@ export type OrderEventPayload = {
   tableNumber?: number;
   status: string;
   totalAmount: number;
+  paymentStatus?: string | null;
+  paymentProvider?: string | null;
+  isPaid?: boolean;
+  paidAt?: string | null;
   createdAt?: string;
   note?: string | null;
   updatedBy?: number | null;
@@ -44,6 +48,24 @@ export type NotificationPayload = {
   tableId?: number;
   tableNumber?: number;
   createdAt?: string;
+};
+
+export type PaymentEventPayload = {
+  paymentId: number;
+  id: number;
+  orderId?: number | null;
+  restaurantId: number;
+  tableId?: number | null;
+  provider: string;
+  status: string;
+  amount: number;
+  currency: string;
+  transactionId?: string | null;
+  paymentUrl?: string | null;
+  errorMessage?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  paidAt?: string | null;
 };
 
 export type WaiterCallPayload = {
@@ -177,5 +199,45 @@ export function onWaiterCallResolved(callback: (call: WaiterCallPayload) => void
 
   return () => {
     orderHubConnection.off("WaiterCallResolved", callback);
+  };
+}
+
+export function onPaymentCreated(callback: (payment: PaymentEventPayload) => void) {
+  const orderHubConnection = getOrderHubConnection();
+
+  orderHubConnection.on("PaymentCreated", callback);
+
+  return () => {
+    orderHubConnection.off("PaymentCreated", callback);
+  };
+}
+
+export function onPaymentSucceeded(callback: (payment: PaymentEventPayload) => void) {
+  const orderHubConnection = getOrderHubConnection();
+
+  orderHubConnection.on("PaymentSucceeded", callback);
+
+  return () => {
+    orderHubConnection.off("PaymentSucceeded", callback);
+  };
+}
+
+export function onPaymentFailed(callback: (payment: PaymentEventPayload) => void) {
+  const orderHubConnection = getOrderHubConnection();
+
+  orderHubConnection.on("PaymentFailed", callback);
+
+  return () => {
+    orderHubConnection.off("PaymentFailed", callback);
+  };
+}
+
+export function onOrderPaymentUpdated(callback: (payment: PaymentEventPayload) => void) {
+  const orderHubConnection = getOrderHubConnection();
+
+  orderHubConnection.on("OrderPaymentUpdated", callback);
+
+  return () => {
+    orderHubConnection.off("OrderPaymentUpdated", callback);
   };
 }

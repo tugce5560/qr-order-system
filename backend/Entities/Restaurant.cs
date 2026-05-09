@@ -20,6 +20,7 @@ public class Restaurant
     public ICollection<Branch> Branches { get; set; } = new List<Branch>();
     public ICollection<Category> Categories { get; set; } = new List<Category>();
     public ICollection<Order> Orders { get; set; } = new List<Order>();
+    public ICollection<Payment> Payments { get; set; } = new List<Payment>();
     public ICollection<AppUser> Users { get; set; } = new List<AppUser>();
     public ICollection<TableSession> TableSessions { get; set; } = new List<TableSession>();
 }

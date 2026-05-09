@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
+import axios from "axios";
 import { api } from "../../services/api";
 import {
   onOrderCreated,
@@ -13,6 +14,12 @@ import {
   getDemoOrders,
   subscribeDemoOrders,
 } from "../../services/demoRealtime";
+import {
+  getOrderPaymentNotice,
+  getPaymentBadgeLabel,
+  paymentOptions,
+} from "./paymentFlow";
+import type { PaymentOption } from "./paymentFlow";
 import "./CustomerPage.css";
 
 type Product = {
@@ -62,9 +69,26 @@ type CustomerNotice = {
   message: string;
 };
 
-type CreatePaymentResponse = {
+type BillPaymentResponse = {
   billId: number;
   amount: number;
+};
+
+type IyzicoCheckoutResponse = {
+  paymentPageUrl: string;
+  token: string;
+  billId: number;
+};
+
+type PaymentResponse = {
+  paymentId: number;
+  orderId: number;
+  amount: number;
+  currency: string;
+  provider: string;
+  status: string;
+  paymentUrl?: string | null;
+  errorMessage?: string | null;
 };
 
 type TableSessionResponse = {
@@ -78,6 +102,10 @@ type CustomerOrder = {
   orderNumber: string;
   status: string;
   totalAmount: number;
+  paymentStatus?: string | null;
+  paymentProvider?: string | null;
+  isPaid?: boolean;
+  paidAt?: string | null;
   createdAt?: string;
   items: {
     id: number;
@@ -250,6 +278,10 @@ export default function CustomerPage() {
   const [isCallingWaiter, setIsCallingWaiter] = useState(false);
   const [isRequestingBill, setIsRequestingBill] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState<string | null>(null);
+  const [paymentOption, setPaymentOption] = useState<PaymentOption>("Cash");
+  const [currentBill, setCurrentBill] = useState<BillPaymentResponse | null>(null);
+  const [isStartingOnlinePayment, setIsStartingOnlinePayment] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
   const [serviceMessage, setServiceMessage] = useState<string | null>(null);
   const [customerNotice, setCustomerNotice] = useState<CustomerNotice | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -483,7 +515,11 @@ export default function CustomerPage() {
 
   useEffect(() => {
     if (canRateOrder && !hasRatedCurrentSession) {
-      setShowRatingCard(true);
+      const timeoutId = window.setTimeout(() => {
+        setShowRatingCard(true);
+      }, 0);
+
+      return () => window.clearTimeout(timeoutId);
     }
   }, [canRateOrder, hasRatedCurrentSession]);
 
@@ -517,6 +553,10 @@ export default function CustomerPage() {
         orderNumber: orderEvent.orderNumber,
         status: orderEvent.status,
         totalAmount: orderEvent.totalAmount,
+        paymentStatus: orderEvent.paymentStatus,
+        paymentProvider: orderEvent.paymentProvider,
+        isPaid: orderEvent.isPaid,
+        paidAt: orderEvent.paidAt,
         createdAt: orderEvent.createdAt,
         items: orderEvent.items ?? [],
       };
@@ -753,17 +793,13 @@ export default function CustomerPage() {
     try {
       setIsRequestingBill(true);
       setServiceMessage(null);
+      setPaymentError(null);
 
-      const response = await api.post<CreatePaymentResponse>(
-        "/payments/create",
-        {
-          restaurantId: resolvedTable.restaurantId,
-          tableId: resolvedTable.tableId,
-        },
-      );
+      const response = await createBillForCurrentTable();
+      setCurrentBill(response);
 
       setServiceMessage(
-        `Hesap istendi. Toplam tutar: ₺${response.data.amount}`,
+        `Hesap istendi. Toplam tutar: ₺${response.amount}`,
       );
       try {
         await api.post("/public/service-request", {
@@ -799,6 +835,63 @@ export default function CustomerPage() {
       setIsHelpOpen(false);
     } finally {
       setIsRequestingBill(false);
+    }
+  }
+
+  async function createBillForCurrentTable() {
+    const response = await api.post<BillPaymentResponse>(
+      "/payments/create",
+      {
+        restaurantId: resolvedTable.restaurantId,
+        tableId: resolvedTable.tableId,
+      },
+    );
+
+    return response.data;
+  }
+
+  async function startIyzicoCheckout(billId?: number) {
+    try {
+      setIsStartingOnlinePayment(true);
+      setPaymentError(null);
+
+      const bill = billId
+        ? currentBill
+        : await createBillForCurrentTable();
+      const selectedBillId = billId ?? bill?.billId;
+
+      if (!selectedBillId) {
+        throw new Error("Bill id could not be resolved.");
+      }
+
+      if (bill) {
+        setCurrentBill(bill);
+      }
+
+      sessionStorage.setItem(
+        "customerReturnPath",
+        restaurantSlug && tableNumber
+          ? `/customer/r/${restaurantSlug}/table/${tableNumber}`
+          : "/customer",
+      );
+
+      const checkoutResponse = await api.post<IyzicoCheckoutResponse>(
+        "/payments/iyzico/checkout",
+        { billId: selectedBillId },
+      );
+
+      window.location.href = checkoutResponse.data.paymentPageUrl;
+    } catch (checkoutError) {
+      const responseMessage = axios.isAxiosError(checkoutError)
+        ? checkoutError.response?.data
+        : null;
+      setPaymentError(
+        typeof responseMessage === "string" && responseMessage.trim()
+          ? responseMessage
+          : "Online ödeme başlatılamadı. Lütfen tekrar deneyin veya ekibe haber verin.",
+      );
+    } finally {
+      setIsStartingOnlinePayment(false);
     }
   }
 
@@ -961,7 +1054,7 @@ export default function CustomerPage() {
       setIsSubmitting(true);
       setCustomerNotice(null);
 
-      const response = await api.post("/orders", {
+      const response = await api.post<{ id?: number; orderId?: number }>("/orders", {
         restaurantId: resolvedTable.restaurantId,
         tableId: resolvedTable.tableId,
         tableSessionToken,
@@ -974,22 +1067,47 @@ export default function CustomerPage() {
       });
 
       // Gerçek sipariş oluşturuldu, demo siparişi güncelle
-      const realOrderId = response.data.id;
+      const realOrderId = response.data.id ?? response.data.orderId;
+      if (!realOrderId) {
+        throw new Error("Order id could not be resolved.");
+      }
       const realOrderNumber = `#T${resolvedTable.tableNumber}-${realOrderId.toString().padStart(4, '0')}`;
+
+      let nextPayment: PaymentResponse | null = null;
+      if (paymentOption === "Pos") {
+        const paymentResponse = await api.post<PaymentResponse>("/payments/create", {
+          orderId: realOrderId,
+          provider: paymentOption,
+          currency: "TRY",
+          tableSessionToken,
+        });
+        nextPayment = paymentResponse.data;
+      }
 
       setCustomerOrders((currentOrders) => [
         {
           ...customerDemoOrder,
           id: realOrderId,
           orderNumber: realOrderNumber,
+          paymentStatus:
+            paymentOption === "Cash" ? customerDemoOrder.paymentStatus : nextPayment?.status,
+          paymentProvider:
+            paymentOption === "Cash" ? customerDemoOrder.paymentProvider : paymentOption,
         },
         ...currentOrders.filter((order) => order.id !== customerDemoOrder.id),
       ]);
 
-      setCustomerNotice({
-        tone: "success",
-        message: "Siparişiniz mutfağa iletildi. Durumu bu ekrandan canlı takip edebilirsiniz.",
-      });
+      if (paymentOption === "Iyzico") {
+        const bill = await createBillForCurrentTable();
+        setCurrentBill(bill);
+        setCustomerNotice(getOrderPaymentNotice(paymentOption, true));
+        setCartItems([]);
+        setIsCartOpen(false);
+        await startIyzicoCheckout(bill.billId);
+        return;
+      }
+
+      setCustomerNotice(getOrderPaymentNotice(paymentOption, nextPayment !== null));
       setCartItems([]);
       setIsCartOpen(false);
     } catch {
@@ -1087,6 +1205,7 @@ export default function CustomerPage() {
         </p>
       )}
       {paymentMessage && <p className="customer-message">{paymentMessage}</p>}
+      {paymentError && <p className="customer-message customer-message-error">{paymentError}</p>}
       {serviceMessage && <p className="customer-message">{serviceMessage}</p>}
       {orderStatusMessage && (
         <p className="customer-message order-status-message">
@@ -1307,6 +1426,19 @@ export default function CustomerPage() {
                 <strong>₺{cartTotal}</strong>
               </div>
 
+              <div className="payment-options" role="group" aria-label="Ödeme seçimi">
+                {paymentOptions.map((option) => (
+                  <button
+                    className={paymentOption === option.value ? "active" : ""}
+                    key={option.value}
+                    type="button"
+                    onClick={() => setPaymentOption(option.value as PaymentOption)}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+
               <div className="cart-actions">
                 <button
                   className="place-order-button"
@@ -1369,6 +1501,11 @@ export default function CustomerPage() {
                             className={`customer-order-status status-${order.status.toLowerCase()}`}
                           >
                             {getStatusLabel(order.status)}
+                          </span>
+                          <span
+                            className={`customer-payment-badge payment-${(order.paymentStatus ?? (order.isPaid ? "Paid" : "Pending")).toLowerCase()}`}
+                          >
+                            {getPaymentBadgeLabel(order.paymentStatus, order.isPaid)}
                           </span>
                         </div>
                         <strong>₺{order.totalAmount}</strong>
@@ -1460,7 +1597,19 @@ export default function CustomerPage() {
               >
                 {isRequestingBill ? "Gönderiliyor..." : "Hesap İste"}
               </button>
+              <button
+                type="button"
+                onClick={() => startIyzicoCheckout(currentBill?.billId)}
+                disabled={isStartingOnlinePayment || !hasBillableOrders}
+              >
+                {isStartingOnlinePayment ? "Yönlendiriliyor..." : "Online Öde"}
+              </button>
             </div>
+            {currentBill && (
+              <p className="help-sheet-total">
+                Ödenebilir hesap: ₺{currentBill.amount}
+              </p>
+            )}
           </section>
         </div>
       )}

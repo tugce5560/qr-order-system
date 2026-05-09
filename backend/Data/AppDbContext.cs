@@ -130,6 +130,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(o => o.OrderNumber).HasMaxLength(50).IsRequired();
             entity.Property(o => o.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
             entity.Property(o => o.Source).HasConversion<string>().HasMaxLength(30).IsRequired();
+            entity.Property(o => o.PaymentStatus).HasConversion<string>().HasMaxLength(30);
+            entity.Property(o => o.PaymentProvider).HasConversion<string>().HasMaxLength(30);
+            entity.Property(o => o.IsPaid).HasDefaultValue(false);
             entity.Property(o => o.TotalAmount).HasPrecision(18, 2);
 
             entity.HasOne(o => o.Restaurant)
@@ -218,12 +221,41 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<Payment>(entity =>
         {
             entity.Property(p => p.Amount).HasPrecision(18, 2);
+            entity.Property(p => p.Provider).HasConversion<string>().HasMaxLength(30).IsRequired();
+            entity.Property(p => p.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
+            entity.Property(p => p.Currency).HasMaxLength(3).HasDefaultValue("TRY").IsRequired();
+            entity.Property(p => p.TransactionId).HasMaxLength(120);
+            entity.Property(p => p.ProviderPaymentId).HasMaxLength(120);
+            entity.Property(p => p.Token).HasMaxLength(160);
+            entity.Property(p => p.PaymentUrl).HasMaxLength(500);
+            entity.Property(p => p.ErrorMessage).HasMaxLength(1000);
             entity.Property(p => p.Method).HasMaxLength(50).IsRequired();
+
+            entity.HasIndex(p => p.Token).IsUnique();
+            entity.HasIndex(p => p.BillId);
+            entity.HasIndex(p => new { p.BillId, p.Provider, p.Status })
+                .IsUnique()
+                .HasFilter("\"BillId\" IS NOT NULL AND \"Provider\" = 'Iyzico' AND \"Status\" = 'Pending'");
+
+            entity.HasOne(p => p.Order)
+                .WithMany(o => o.Payments)
+                .HasForeignKey(p => p.OrderId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(p => p.Restaurant)
+                .WithMany(r => r.Payments)
+                .HasForeignKey(p => p.RestaurantId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(p => p.Table)
+                .WithMany(t => t.Payments)
+                .HasForeignKey(p => p.TableId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasOne(p => p.Bill)
                 .WithMany(b => b.Payments)
                 .HasForeignKey(p => p.BillId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<Rating>(entity =>

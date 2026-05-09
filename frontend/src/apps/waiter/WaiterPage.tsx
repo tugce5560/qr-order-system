@@ -3,7 +3,11 @@ import { api } from "../../services/api";
 import {
   onOrderCreated,
   onOrderUpdated,
+  onPaymentFailed,
+  onPaymentSucceeded,
   onServiceRequested,
+  onWaiterCallCreated,
+  onWaiterCallResolved,
   startOrderHubConnection,
 } from "../../services/orderHub";
 import type {
@@ -47,6 +51,10 @@ type WaiterOrder = {
   tableId: number;
   status: OrderStatus;
   totalAmount: number;
+  paymentStatus?: string | null;
+  paymentProvider?: string | null;
+  isPaid?: boolean;
+  paidAt?: string | null;
   createdAt?: string;
   note?: string | null;
   items: WaiterOrderItem[];
@@ -69,6 +77,15 @@ type PendingTableRequest = {
   tableNumber: number;
   type: "Waiter" | "Bill";
   requestedAt: string;
+};
+
+type WaiterAlert = {
+  id: string;
+  tone: "new" | "service" | "payment" | "info";
+  title: string;
+  message: string;
+  tableNumber?: number;
+  createdAt: string;
 };
 
 type OrderStatus = "New" | "Preparing" | "Ready" | "Served" | "Paid";
@@ -240,13 +257,27 @@ function WaiterPage() {
   >([]);
   const [demoServiceRequests, setDemoServiceRequests] = useState<
     DemoServiceRequest[]
-  >([]);
+  >(() => getDemoServiceRequests());
   const [waiterCalls, setWaiterCalls] = useState<WaiterCall[]>([]);
   const [editingOrder, setEditingOrder] = useState<WaiterOrder | null>(null);
   const [editItems, setEditItems] = useState<EditOrderItem[]>([]);
   const [editOrderNote, setEditOrderNote] = useState<string>("");
   const [products, setProducts] = useState<Product[]>([]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [waiterAlerts, setWaiterAlerts] = useState<WaiterAlert[]>([]);
+
+  const pushWaiterAlert = useCallback((alert: Omit<WaiterAlert, "id" | "createdAt">) => {
+    const createdAt = new Date().toISOString();
+
+    setWaiterAlerts((currentAlerts) => [
+      {
+        ...alert,
+        id: `${alert.tone}-${alert.tableNumber ?? "all"}-${Date.now()}`,
+        createdAt,
+      },
+      ...currentAlerts,
+    ].slice(0, 4));
+  }, []);
 
   const fetchWaiterData = useCallback(async () => {
     try {
@@ -297,6 +328,10 @@ function WaiterPage() {
       tableId: orderEvent.tableId,
       status: orderEvent.status as OrderStatus,
       totalAmount: orderEvent.totalAmount,
+      paymentStatus: orderEvent.paymentStatus,
+      paymentProvider: orderEvent.paymentProvider,
+      isPaid: orderEvent.isPaid,
+      paidAt: orderEvent.paidAt,
       createdAt: orderEvent.createdAt,
       note: orderEvent.note,
       items: orderEvent.items ?? [],
@@ -328,7 +363,16 @@ function WaiterPage() {
   useEffect(() => {
     startOrderHubConnection();
 
-    const unsubscribeOrderCreated = onOrderCreated(mergeRealtimeOrder);
+    const unsubscribeOrderCreated = onOrderCreated((order) => {
+      mergeRealtimeOrder(order);
+      setSelectedStatus("New");
+      pushWaiterAlert({
+        tone: "new",
+        title: "Yeni sipariş geldi",
+        message: `${order.orderNumber} masadan gönderildi.`,
+        tableNumber: order.tableNumber,
+      });
+    });
     const unsubscribeOrderUpdated = onOrderUpdated(mergeRealtimeOrder);
     const unsubscribeServiceRequested = onServiceRequested((request) => {
       setServiceRequests((currentRequests) =>
@@ -343,14 +387,64 @@ function WaiterPage() {
           ),
         ].slice(0, 8),
       );
+      pushWaiterAlert({
+        tone: "service",
+        title: getServiceRequestLabel(request.type),
+        message: getServiceRequestDescription(request.type),
+        tableNumber: request.tableNumber,
+      });
+    });
+    const unsubscribeWaiterCallCreated = onWaiterCallCreated((call) => {
+      setWaiterCalls((currentCalls) => [
+        {
+          id: call.id,
+          tableId: call.tableId,
+          tableNumber: call.tableNumber,
+          status: call.status,
+          message: call.message,
+          createdAt: call.createdAt,
+        },
+        ...currentCalls.filter((currentCall) => currentCall.id !== call.id),
+      ]);
+      pushWaiterAlert({
+        tone: "service",
+        title: "Garson çağrısı",
+        message: call.message || "Müşteri garson çağırıyor.",
+        tableNumber: call.tableNumber,
+      });
+    });
+    const unsubscribeWaiterCallResolved = onWaiterCallResolved((call) => {
+      setWaiterCalls((currentCalls) =>
+        currentCalls.filter((currentCall) => currentCall.id !== call.id),
+      );
+    });
+    const unsubscribePaymentSucceeded = onPaymentSucceeded((payment) => {
+      pushWaiterAlert({
+        tone: "payment",
+        title: "Ödeme başarılı",
+        message: `${formatCurrency(payment.amount)} ${payment.provider} ile alındı.`,
+        tableNumber: payment.tableId ?? undefined,
+      });
+    });
+    const unsubscribePaymentFailed = onPaymentFailed((payment) => {
+      pushWaiterAlert({
+        tone: "payment",
+        title: "Ödeme başarısız",
+        message: payment.errorMessage || `${payment.provider} ödemesi başarısız oldu.`,
+        tableNumber: payment.tableId ?? undefined,
+      });
     });
 
     return () => {
       unsubscribeOrderCreated();
       unsubscribeOrderUpdated();
       unsubscribeServiceRequested();
+      unsubscribeWaiterCallCreated();
+      unsubscribeWaiterCallResolved();
+      unsubscribePaymentSucceeded();
+      unsubscribePaymentFailed();
     };
-  }, [mergeRealtimeOrder]);
+  }, [mergeRealtimeOrder, pushWaiterAlert]);
 
   useEffect(() => {
     return subscribeDemoOrders((demoOrders) => {
@@ -365,8 +459,6 @@ function WaiterPage() {
   }, []);
 
   useEffect(() => {
-    setDemoServiceRequests(getDemoServiceRequests());
-
     return subscribeDemoServiceRequests((requests) => {
       setDemoServiceRequests(requests);
     });
@@ -385,6 +477,38 @@ function WaiterPage() {
           order.id === orderId ? { ...order, status } : order,
         ),
       );
+    } finally {
+      setUpdatingOrderId(null);
+    }
+  }
+
+  async function markOrderPaid(orderId: number, provider: "Cash" | "Pos") {
+    try {
+      setUpdatingOrderId(orderId);
+      await api.post("/payments/mark-cash-paid", { orderId, provider });
+      await fetchWaiterData();
+    } catch {
+      setError(null);
+      setOrders((currentOrders) =>
+        currentOrders.map((order) =>
+          order.id === orderId
+            ? {
+                ...order,
+                status: "Paid",
+                isPaid: true,
+                paymentStatus: "Paid",
+                paymentProvider: provider,
+                paidAt: new Date().toISOString(),
+              }
+            : order,
+        ),
+      );
+      updateDemoOrderStatus(orderId, "Paid");
+      pushWaiterAlert({
+        tone: "payment",
+        title: "Ödeme işaretlendi",
+        message: provider === "Cash" ? "Kasada ödeme alındı." : "POS ödemesi alındı.",
+      });
     } finally {
       setUpdatingOrderId(null);
     }
@@ -573,10 +697,10 @@ function WaiterPage() {
       };
     }
 
-    if (order.status === "Served") {
+    if (order.status === "Preparing") {
       return {
-        label: "Ödendi",
-        status: "Paid" as const,
+        label: "Hazır olarak işaretle",
+        status: "Ready" as const,
       };
     }
 
@@ -709,6 +833,34 @@ function WaiterPage() {
         </div>
       </header>
 
+      {waiterAlerts.length > 0 && (
+        <section className="waiter-live-alerts" aria-label="Canlı bildirimler">
+          {waiterAlerts.map((alert) => (
+            <article className={`waiter-live-alert alert-${alert.tone}`} key={alert.id}>
+              <div>
+                <strong>{alert.title}</strong>
+                <p>{alert.message}</p>
+                <span>
+                  {alert.tableNumber ? `Masa ${alert.tableNumber} · ` : ""}
+                  {formatOrderTime(alert.createdAt)}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  setWaiterAlerts((currentAlerts) =>
+                    currentAlerts.filter((currentAlert) => currentAlert.id !== alert.id),
+                  )
+                }
+                aria-label="Bildirimi kapat"
+              >
+                X
+              </button>
+            </article>
+          ))}
+        </section>
+      )}
+
       <>
           {pendingTableRequests.length > 0 && (
             <section className="waiter-service-requests">
@@ -810,14 +962,25 @@ function WaiterPage() {
                         className={`waiter-order-card status-${order.status.toLowerCase()}`}
                         key={order.id}
                       >
-                        <div className="waiter-order-top">
+                      <div className="waiter-order-top">
                           <div>
                             <span>Masa {getTableNumber(order)}</span>
                             <h3>{order.orderNumber}</h3>
                           </div>
-                          <span className={`table-status-badge status-${order.status.toLowerCase()}`}>
-                            {getStatusLabel(order.status)}
-                          </span>
+                          <div className="waiter-order-badges">
+                            <span className={`table-status-badge status-${order.status.toLowerCase()}`}>
+                              {getStatusLabel(order.status)}
+                            </span>
+                            {selectedStatus === "Paid" && (
+                              <span
+                                className={`table-status-badge payment-${(order.paymentStatus ?? (order.isPaid ? "Paid" : "Pending")).toLowerCase()}`}
+                              >
+                                {order.paymentProvider
+                                  ? `${order.paymentProvider} ile ödendi`
+                                  : "Ödendi"}
+                              </span>
+                            )}
+                          </div>
                         </div>
 
                         <div className="waiter-order-meta">
@@ -876,6 +1039,25 @@ function WaiterPage() {
                                 ? "Güncelleniyor..."
                                 : nextAction.label}
                             </button>
+                          )}
+
+                          {!order.isPaid && order.status !== "Paid" && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => markOrderPaid(order.id, "Cash")}
+                                disabled={updatingOrderId === order.id}
+                              >
+                                Kasada ödendi
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => markOrderPaid(order.id, "Pos")}
+                                disabled={updatingOrderId === order.id}
+                              >
+                                POS ile ödendi
+                              </button>
+                            </>
                           )}
 
                           {!["New", "Preparing"].includes(order.status) && (

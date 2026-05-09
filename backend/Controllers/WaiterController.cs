@@ -82,6 +82,10 @@ public class WaiterController(AppDbContext dbContext) : ControllerBase
                     order.OrderNumber,
                     Status = order.Status.ToString(),
                     order.TotalAmount,
+                    PaymentStatus = order.PaymentStatus == null ? null : order.PaymentStatus.ToString(),
+                    PaymentProvider = order.PaymentProvider == null ? null : order.PaymentProvider.ToString(),
+                    order.IsPaid,
+                    order.PaidAt,
                     Items = order.Items.Select(item => new
                     {
                         item.ProductName,

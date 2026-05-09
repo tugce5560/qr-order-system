@@ -22,6 +22,10 @@ type CustomerOrder = {
   tableId: number;
   status: "New" | "Preparing" | "Ready" | "Served" | "Paid" | "Cancelled";
   totalAmount: number;
+  paymentStatus?: string | null;
+  paymentProvider?: string | null;
+  isPaid?: boolean;
+  paidAt?: string | null;
   createdAt?: string;
   items: OrderItem[];
 };
@@ -105,6 +109,10 @@ function CustomerOrdersPage() {
         tableId: orderEvent.tableId,
         status: orderEvent.status as CustomerOrder["status"],
         totalAmount: orderEvent.totalAmount,
+        paymentStatus: orderEvent.paymentStatus,
+        paymentProvider: orderEvent.paymentProvider,
+        isPaid: orderEvent.isPaid,
+        paidAt: orderEvent.paidAt,
         createdAt: orderEvent.createdAt,
         items: orderEvent.items ?? [],
       };
@@ -200,6 +208,15 @@ function CustomerOrdersPage() {
               </span>
               <span className={`order-status status-${order.status.toLowerCase()}`}>
                 {order.status}
+              </span>
+              <span
+                className={`order-status payment-${(order.paymentStatus ?? (order.isPaid ? "Paid" : "Pending")).toLowerCase()}`}
+              >
+                {order.isPaid || order.paymentStatus === "Paid"
+                  ? "Ödendi"
+                  : order.paymentStatus === "Failed"
+                    ? "Başarısız"
+                    : "Bekliyor"}
               </span>
             </button>
 

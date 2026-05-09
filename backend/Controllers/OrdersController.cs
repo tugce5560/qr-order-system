@@ -80,6 +80,10 @@ public class OrdersController(
                 order.TableId,
                 Status = order.Status.ToString(),
                 order.TotalAmount,
+                PaymentStatus = order.PaymentStatus == null ? null : order.PaymentStatus.ToString(),
+                PaymentProvider = order.PaymentProvider == null ? null : order.PaymentProvider.ToString(),
+                order.IsPaid,
+                order.PaidAt,
                 order.CreatedAt,
                 order.Note,
                 Items = order.Items.Select(item => new
@@ -255,7 +259,7 @@ public class OrdersController(
             CreatedAt = order.CreatedAt
         });
 
-        return Ok(new CreateOrderResponse(order.Id, order.TotalAmount));
+        return Ok(new CreateOrderResponse(order.Id, order.Id, order.TotalAmount));
     }
 
     [HttpPatch("{orderId:int}/status")]
@@ -302,6 +306,12 @@ public class OrdersController(
         }
 
         order.Status = status;
+        if (status == OrderStatus.Paid)
+        {
+            order.IsPaid = true;
+            order.PaymentStatus = PaymentStatus.Paid;
+            order.PaymentProvider ??= PaymentProvider.Cash;
+        }
         SetStatusTimestamp(order, status);
         await dbContext.SaveChangesAsync();
 
@@ -564,6 +574,10 @@ public class OrdersController(
             TableNumber = tableNumber,
             Status = order.Status.ToString(),
             order.TotalAmount,
+            PaymentStatus = order.PaymentStatus == null ? null : order.PaymentStatus.ToString(),
+            PaymentProvider = order.PaymentProvider == null ? null : order.PaymentProvider.ToString(),
+            order.IsPaid,
+            order.PaidAt,
             order.CreatedAt,
             order.Note,
             UpdatedBy = updatedBy,
@@ -612,7 +626,7 @@ public class OrdersController(
         string? Note,
         string? RemovedIngredients);
 
-    public record CreateOrderResponse(int OrderId, decimal TotalAmount);
+    public record CreateOrderResponse(int Id, int OrderId, decimal TotalAmount);
 
     public record UpdateOrderItemsRequest(
         List<UpdateOrderItemRequest> Items,

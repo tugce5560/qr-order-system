@@ -5,6 +5,7 @@ import AdminPage from './apps/admin/AdminPage'
 import CustomerOrdersPage from './apps/customer/CustomerOrdersPage'
 import CustomerPage from './apps/customer/CustomerPage'
 import CustomerReceiptPage from './apps/customer/CustomerReceiptPage'
+import PaymentResultPage from './apps/customer/PaymentResultPage'
 import KitchenBoardPage from './apps/kitchen/KitchenBoardPage'
 import SuperAdminPage from './apps/super-admin/SuperAdminPage'
 import WaiterPage from './apps/waiter/WaiterPage'
@@ -74,6 +75,7 @@ function App() {
       />
       <Route path="/customer/orders" element={<CustomerOrdersPage />} />
       <Route path="/receipt/:billId" element={<CustomerReceiptPage />} />
+      <Route path="/payment-result" element={<PaymentResultPage />} />
       <Route
         path="/customer/r/:restaurantSlug/table/:tableNumber"
         element={<CustomerPage />}

@@ -1778,3 +1778,55 @@
   background: rgba(45, 212, 191, 0.14);
   color: #99f6e4;
 }
+
+.admin-payment-badge,
+.admin-payment-summary span {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.admin-payment-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.admin-payment-badge.payment-paid,
+.admin-payment-summary span {
+  border: 1px solid rgba(34, 197, 94, 0.28);
+  background: rgba(34, 197, 94, 0.12);
+  color: #bbf7d0;
+}
+
+.admin-payment-badge.payment-pending {
+  border: 1px solid rgba(250, 204, 21, 0.3);
+  background: rgba(250, 204, 21, 0.12);
+  color: #fde68a;
+}
+
+.admin-payment-badge.payment-failed {
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  background: rgba(248, 113, 113, 0.12);
+  color: #fecaca;
+}
+
+.admin-payment-history {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.admin-payment-history article {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid rgba(226, 232, 240, 0.12);
+  border-radius: 12px;
+  padding: 10px;
+}

@@ -1434,3 +1434,224 @@
     font-size: 20px;
   }
 }
+
+.table-status-badge.payment-paid {
+  border-color: rgba(34, 197, 94, 0.28);
+  background: rgba(34, 197, 94, 0.12);
+  color: #bbf7d0;
+}
+
+.table-status-badge.payment-pending {
+  border-color: rgba(250, 204, 21, 0.3);
+  background: rgba(250, 204, 21, 0.12);
+  color: #fde68a;
+}
+
+.table-status-badge.payment-failed {
+  border-color: rgba(248, 113, 113, 0.3);
+  background: rgba(248, 113, 113, 0.12);
+  color: #fecaca;
+}
+
+/* Waiter panel final usability pass: no overlap, readable dark UI. */
+.waiter-page {
+  background:
+    radial-gradient(circle at top left, rgba(249, 115, 22, 0.12), transparent 32%),
+    linear-gradient(180deg, #0f141b 0, #111827 100%);
+  color: #f8fafc;
+}
+
+.waiter-live-alerts {
+  position: sticky;
+  top: 10px;
+  z-index: 15;
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.waiter-live-alert {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 34px;
+  gap: 12px;
+  align-items: start;
+  border: 1px solid rgba(45, 212, 191, 0.28);
+  border-left: 5px solid #14b8a6;
+  border-radius: 8px;
+  padding: 12px;
+  background: #10232b;
+  color: #f8fafc;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.24);
+}
+
+.waiter-live-alert.alert-new {
+  border-color: rgba(251, 146, 60, 0.34);
+  border-left-color: #fb923c;
+  background: #2a1a13;
+}
+
+.waiter-live-alert.alert-payment {
+  border-color: rgba(34, 197, 94, 0.34);
+  border-left-color: #22c55e;
+  background: #102417;
+}
+
+.waiter-live-alert strong,
+.waiter-live-alert p,
+.waiter-live-alert span {
+  margin: 0;
+  color: #f8fafc;
+}
+
+.waiter-live-alert p,
+.waiter-live-alert span {
+  color: #cbd5e1;
+  font-size: 13px;
+}
+
+.waiter-live-alert button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.86);
+  color: #f8fafc;
+  cursor: pointer;
+  font-weight: 950;
+}
+
+.waiter-order-list {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+  align-items: stretch;
+}
+
+.waiter-order-card {
+  min-width: 0;
+  overflow: hidden;
+  background: #151d28;
+}
+
+.waiter-order-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+
+.waiter-order-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.table-status-badge {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.15;
+}
+
+.waiter-order-meta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  background: #eef2f7;
+  color: #111827;
+}
+
+.waiter-order-meta span,
+.waiter-order-meta strong {
+  color: #111827;
+}
+
+.waiter-order-card li {
+  background: #202938;
+  color: #f8fafc;
+}
+
+.waiter-order-card li span,
+.waiter-order-card li strong,
+.waiter-order-card li span b {
+  color: #f8fafc;
+}
+
+.waiter-order-card li small {
+  color: #cbd5e1;
+}
+
+.waiter-order-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 10px;
+}
+
+.waiter-order-actions button,
+.waiter-order-actions .disabled-action {
+  width: 100%;
+  min-width: 0;
+}
+
+.waiter-order-actions .disabled-action {
+  grid-column: 1 / -1;
+  color: #cbd5e1;
+}
+
+.waiter-order-actions button {
+  min-height: 46px;
+  padding: 8px 10px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.waiter-order-actions button.secondary {
+  background: #f8fafc;
+  color: #111827;
+}
+
+.waiter-order-actions button:not(.secondary) {
+  background: linear-gradient(135deg, #f97316, #fb923c);
+  color: #111827;
+}
+
+.waiter-status-tabs button {
+  color: #f8fafc;
+}
+
+.waiter-status-tabs button.active {
+  color: #111827;
+}
+
+.waiter-status-tabs strong {
+  color: #f8fafc;
+}
+
+.waiter-status-tabs button.active strong {
+  background: rgba(255, 255, 255, 0.18);
+  color: #111827;
+}
+
+.waiter-panel-heading h2,
+.waiter-order-top h3 {
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 980px) {
+  .waiter-live-alerts {
+    position: fixed;
+    top: 94px;
+    right: 22px;
+    width: min(380px, calc(100vw - 44px));
+    margin: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .waiter-order-list {
+    grid-template-columns: 1fr;
+  }
+
+  .waiter-order-actions {
+    grid-template-columns: 1fr;
+  }
+}

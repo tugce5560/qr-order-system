@@ -13,6 +13,9 @@ public class Order
     public OrderStatus Status { get; set; }
     public OrderSource Source { get; set; }
     public decimal TotalAmount { get; set; }
+    public PaymentStatus? PaymentStatus { get; set; }
+    public PaymentProvider? PaymentProvider { get; set; }
+    public bool IsPaid { get; set; }
     public string? Note { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? PreparingAt { get; set; }
@@ -26,4 +29,5 @@ public class Order
     public RestaurantTable Table { get; set; } = null!;
     public Bill? Bill { get; set; }
     public ICollection<OrderItem> Items { get; set; } = new List<OrderItem>();
+    public ICollection<Payment> Payments { get; set; } = new List<Payment>();
 }

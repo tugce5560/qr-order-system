@@ -125,9 +125,23 @@ type BillReceipt = {
   discountAmount: number;
   grandTotal: number;
   paymentMethod?: string | null;
+  payments?: PaymentRecord[];
   createdAt?: string;
   paidAt?: string | null;
   items: BillReceiptItem[];
+};
+
+type PaymentRecord = {
+  paymentId: number;
+  id: number;
+  orderId?: number | null;
+  provider: string;
+  status: string;
+  amount: number;
+  currency: string;
+  paidAt?: string | null;
+  createdAt?: string;
+  errorMessage?: string | null;
 };
 
 type BillReceiptItem = {
@@ -153,6 +167,10 @@ type Order = {
   tableId: number;
   status: string;
   totalAmount: number;
+  paymentStatus?: string | null;
+  paymentProvider?: string | null;
+  isPaid?: boolean;
+  paidAt?: string | null;
   createdAt?: string;
   items: OrderItem[];
 };
@@ -641,6 +659,10 @@ function AdminPage() {
       tableId: orderEvent.tableId,
       status: orderEvent.status,
       totalAmount: orderEvent.totalAmount,
+      paymentStatus: orderEvent.paymentStatus,
+      paymentProvider: orderEvent.paymentProvider,
+      isPaid: orderEvent.isPaid,
+      paidAt: orderEvent.paidAt,
       createdAt: orderEvent.createdAt,
       items: orderEvent.items ?? [],
     };
@@ -825,7 +847,7 @@ function AdminPage() {
       });
       setTableNumber("");
       await loadAdminData();
-    } catch (error) {
+    } catch {
       const nextTable: RestaurantTable = {
         id: Date.now(),
         tableNumber: nextTableNumber,
@@ -1425,6 +1447,13 @@ function OrdersPanel({
             <article key={order.id}>
               <span>Masa {getTableNumberFromOrder(order, tables)}</span>
               <strong>{order.status}</strong>
+              <em className={`admin-payment-badge payment-${(order.paymentStatus ?? (order.isPaid ? "Paid" : "Pending")).toLowerCase()}`}>
+                {order.isPaid || order.paymentStatus === "Paid"
+                  ? "Ödendi"
+                  : order.paymentStatus === "Failed"
+                    ? "Başarısız"
+                    : "Ödeme bekliyor"}
+              </em>
               <b>{formatCurrency(order.totalAmount)}</b>
               <time>{formatTime(order.createdAt)}</time>
               <button type="button" onClick={() => onSelectOrder(order)}>
@@ -1777,7 +1806,9 @@ function BillsPanel({
           taxAmount: 0,
           discountAmount: 0,
           grandTotal: order.totalAmount,
+          paymentMethod: order.paymentProvider,
           createdAt: order.createdAt,
+          paidAt: order.paidAt,
           items: order.items.map((item) => ({
             productName: item.productName,
             quantity: item.quantity,
@@ -1867,6 +1898,14 @@ function BillsPanel({
                   <strong>{receipt.billNumber}</strong>
                 </div>
                 <em>{receipt.status === "Open" ? "Ödeme bekliyor" : receipt.status}</em>
+              </div>
+
+              <div className="admin-payment-summary">
+                <span>Sağlayıcı: {receipt.paymentMethod ?? "Belirtilmedi"}</span>
+                <span>
+                  Durum: {receipt.paidAt ? "Ödendi" : "Bekliyor"}
+                </span>
+                {receipt.paidAt && <span>{formatDateTime(receipt.paidAt)}</span>}
               </div>
 
               <div className="admin-bill-items">
@@ -2175,6 +2214,31 @@ function OrderDetailModal({
   tableNumber: string;
   onClose: () => void;
 }) {
+  const [payments, setPayments] = useState<PaymentRecord[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadPayments() {
+      try {
+        const response = await api.get<PaymentRecord[]>(`/payments/order/${order.id}`);
+        if (isMounted) {
+          setPayments(response.data);
+        }
+      } catch {
+        if (isMounted) {
+          setPayments([]);
+        }
+      }
+    }
+
+    void loadPayments();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [order.id]);
+
   return (
     <div className="admin-modal-backdrop" role="presentation">
       <section className="admin-modal" role="dialog" aria-modal="true">
@@ -2197,6 +2261,20 @@ function OrderDetailModal({
             <dd>{formatCurrency(order.totalAmount)}</dd>
           </div>
           <div>
+            <dt>Ödeme</dt>
+            <dd>
+              {order.isPaid || order.paymentStatus === "Paid"
+                ? "Ödendi"
+                : order.paymentStatus === "Failed"
+                  ? "Başarısız"
+                  : "Bekliyor"}
+            </dd>
+          </div>
+          <div>
+            <dt>Sağlayıcı</dt>
+            <dd>{order.paymentProvider ?? "-"}</dd>
+          </div>
+          <div>
             <dt>Saat</dt>
             <dd>{formatTime(order.createdAt)}</dd>
           </div>
@@ -2213,6 +2291,23 @@ function OrderDetailModal({
             </li>
           ))}
         </ul>
+        <div className="admin-payment-history">
+          <h4>Ödeme geçmişi</h4>
+          {payments.length === 0 ? (
+            <p>Ödeme kaydı yok.</p>
+          ) : (
+            payments.map((payment) => (
+              <article key={payment.id}>
+                <span>{payment.provider}</span>
+                <strong>{payment.status}</strong>
+                <b>
+                  {payment.amount} {payment.currency}
+                </b>
+                <time>{formatDateTime(payment.paidAt ?? payment.createdAt)}</time>
+              </article>
+            ))
+          )}
+        </div>
       </section>
     </div>
   );

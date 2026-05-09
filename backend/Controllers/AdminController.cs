@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QrOrderSystem.Api.Data;
 using QrOrderSystem.Api.Entities;
+using QrOrderSystem.Api.Enums;
 
 namespace QrOrderSystem.Api.Controllers;
 
@@ -490,6 +491,18 @@ public class AdminController(AppDbContext dbContext, IWebHostEnvironment environ
         if (table is null)
         {
             return NotFound();
+        }
+
+        var hasUnpaidOrders = await dbContext.Orders.AnyAsync(order =>
+            order.RestaurantId == restaurantId &&
+            order.TableId == id &&
+            !order.IsPaid &&
+            order.Status != OrderStatus.Paid &&
+            order.Status != OrderStatus.Cancelled);
+
+        if (hasUnpaidOrders)
+        {
+            return BadRequest("Bu masa kapatılamaz. Ödenmemiş siparişler var.");
         }
 
         dbContext.RestaurantTables.Remove(table);

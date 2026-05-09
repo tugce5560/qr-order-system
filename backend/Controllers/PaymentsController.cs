@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -5,12 +6,19 @@ using QrOrderSystem.Api.Data;
 using QrOrderSystem.Api.Entities;
 using QrOrderSystem.Api.Enums;
 using QrOrderSystem.Api.Hubs;
+using QrOrderSystem.Api.Services.Payments;
 
 namespace QrOrderSystem.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class PaymentsController(AppDbContext dbContext, IHubContext<OrderHub> orderHub) : ControllerBase
+public class PaymentsController(
+    AppDbContext dbContext,
+    IHubContext<OrderHub> orderHub,
+    IPaymentService paymentService,
+    IIyzicoPaymentService iyzicoPaymentService,
+    IConfiguration configuration,
+    ILogger<PaymentsController> logger) : ControllerBase
 {
     [HttpGet("tables/{tableId:int}/bill")]
     public async Task<IActionResult> GetTableBill(int tableId, [FromQuery] int restaurantId)
@@ -24,7 +32,7 @@ public class PaymentsController(AppDbContext dbContext, IHubContext<OrderHub> or
 
             return Ok(await BuildReceipt(bill.Id));
         }
-        catch (InvalidOperationException exception)
+        catch (Exception exception) when (IsKnownPaymentException(exception))
         {
             return ToPaymentErrorResult(exception);
         }
@@ -43,7 +51,7 @@ public class PaymentsController(AppDbContext dbContext, IHubContext<OrderHub> or
 
             return receipt is null ? NotFound() : Ok(receipt);
         }
-        catch (InvalidOperationException exception)
+        catch (Exception exception) when (IsKnownPaymentException(exception))
         {
             return ToPaymentErrorResult(exception);
         }
@@ -54,8 +62,27 @@ public class PaymentsController(AppDbContext dbContext, IHubContext<OrderHub> or
     {
         try
         {
+            if (request.OrderId.HasValue)
+            {
+                var provider = ParsePaymentProvider(request.Provider, PaymentProvider.MockOnline);
+                var payment = await paymentService.CreatePaymentAsync(
+                    request.OrderId.Value,
+                    provider,
+                    request.Currency ?? "TRY",
+                    GetRestaurantScope(request.RestaurantId),
+                    request.TableSessionToken);
+
+                await PublishPaymentEvent("PaymentCreated", payment);
+                return Ok(ToPaymentResponse(payment));
+            }
+
             var restaurantId = GetScopedRestaurantId(request.RestaurantId);
-            var bill = await GetOrCreateOpenBillForTable(restaurantId, request.TableId);
+            if (!request.TableId.HasValue)
+            {
+                return BadRequest("Table id is required.");
+            }
+
+            var bill = await GetOrCreateOpenBillForTable(restaurantId, request.TableId.Value);
             await RecalculateBillTotals(bill.Id);
             await dbContext.SaveChangesAsync();
 
@@ -65,7 +92,92 @@ public class PaymentsController(AppDbContext dbContext, IHubContext<OrderHub> or
                 Amount = bill.GrandTotal
             });
         }
-        catch (InvalidOperationException exception)
+        catch (Exception exception) when (IsKnownPaymentException(exception))
+        {
+            return ToPaymentErrorResult(exception);
+        }
+    }
+
+    [HttpPost("mock-success")]
+    public async Task<IActionResult> MockSuccess(MockPaymentSuccessRequest request)
+    {
+        try
+        {
+            var payment = await paymentService.MarkSucceededAsync(
+                request.PaymentId,
+                GetRestaurantScope(request.RestaurantId),
+                request.TableSessionToken);
+
+            await PublishPaymentEvent("PaymentSucceeded", payment);
+            await PublishPaymentEvent("OrderPaymentUpdated", payment);
+
+            return Ok(ToPaymentResponse(payment));
+        }
+        catch (Exception exception) when (IsKnownPaymentException(exception))
+        {
+            return ToPaymentErrorResult(exception);
+        }
+    }
+
+    [HttpPost("mock-fail")]
+    public async Task<IActionResult> MockFail(MockPaymentFailRequest request)
+    {
+        try
+        {
+            var payment = await paymentService.MarkFailedAsync(
+                request.PaymentId,
+                request.ErrorMessage,
+                GetRestaurantScope(request.RestaurantId),
+                request.TableSessionToken);
+
+            await PublishPaymentEvent("PaymentFailed", payment);
+            await PublishPaymentEvent("OrderPaymentUpdated", payment);
+
+            return Ok(ToPaymentResponse(payment));
+        }
+        catch (Exception exception) when (IsKnownPaymentException(exception))
+        {
+            return ToPaymentErrorResult(exception);
+        }
+    }
+
+    [HttpGet("order/{orderId:int}")]
+    public async Task<IActionResult> GetOrderPayments(
+        int orderId,
+        [FromQuery] int? restaurantId = null,
+        [FromQuery] string? tableSessionToken = null)
+    {
+        try
+        {
+            var payments = await paymentService.GetOrderPaymentsAsync(
+                orderId,
+                GetRestaurantScope(restaurantId),
+                tableSessionToken);
+
+            return Ok(payments.Select(ToPaymentResponse));
+        }
+        catch (Exception exception) when (IsKnownPaymentException(exception))
+        {
+            return ToPaymentErrorResult(exception);
+        }
+    }
+
+    [Authorize(Roles = "RestaurantAdmin,Waiter,SuperAdmin")]
+    [HttpPost("mark-cash-paid")]
+    public async Task<IActionResult> MarkCashPaid(MarkCashPaidRequest request)
+    {
+        try
+        {
+            var restaurantId = GetScopedRestaurantId(request.RestaurantId);
+            var provider = ParsePaymentProvider(request.Provider, PaymentProvider.Cash);
+            var payment = await paymentService.MarkCashPaidAsync(request.OrderId, provider, restaurantId);
+
+            await PublishPaymentEvent("PaymentSucceeded", payment);
+            await PublishPaymentEvent("OrderPaymentUpdated", payment);
+
+            return Ok(ToPaymentResponse(payment));
+        }
+        catch (Exception exception) when (IsKnownPaymentException(exception))
         {
             return ToPaymentErrorResult(exception);
         }
@@ -81,6 +193,7 @@ public class PaymentsController(AppDbContext dbContext, IHubContext<OrderHub> or
                 request.TableId,
                 ParsePaymentMethod(request.PaymentMethod));
             await dbContext.SaveChangesAsync();
+
             await orderHub.Clients.All.SendAsync("PaymentCompleted", new
             {
                 result.Bill.Id,
@@ -100,6 +213,12 @@ public class PaymentsController(AppDbContext dbContext, IHubContext<OrderHub> or
                 CreatedAt = result.Bill.PaidAt ?? DateTime.UtcNow
             });
 
+            foreach (var payment in result.Payments)
+            {
+                await PublishPaymentEvent("PaymentSucceeded", payment);
+                await PublishPaymentEvent("OrderPaymentUpdated", payment);
+            }
+
             return Ok(new
             {
                 BillId = result.Bill.Id,
@@ -108,20 +227,92 @@ public class PaymentsController(AppDbContext dbContext, IHubContext<OrderHub> or
                 Receipt = await BuildReceipt(result.Bill.Id, result.Bill.RestaurantId, result.Bill.TableId)
             });
         }
-        catch (InvalidOperationException exception)
+        catch (Exception exception) when (IsKnownPaymentException(exception))
         {
             return ToPaymentErrorResult(exception);
         }
     }
 
-    private IActionResult ToPaymentErrorResult(InvalidOperationException exception)
+    [HttpPost("iyzico/checkout")]
+    public async Task<IActionResult> CreateIyzicoCheckout(IyzicoCheckoutRequest request)
     {
-        if (exception.Message == "Table not found." || exception.Message == "Bill not found.")
+        try
+        {
+            var checkout = await iyzicoPaymentService.CreateCheckoutAsync(request.BillId, HttpContext.RequestAborted);
+
+            return Ok(new
+            {
+                checkout.PaymentPageUrl,
+                checkout.Token,
+                checkout.BillId
+            });
+        }
+        catch (Exception exception) when (IsKnownPaymentException(exception))
+        {
+            return ToPaymentErrorResult(exception);
+        }
+    }
+
+    [HttpPost("iyzico/callback")]
+    public async Task<IActionResult> IyzicoCallback()
+    {
+        try
+        {
+            var token = await ReadIyzicoCallbackToken();
+            var callback = await iyzicoPaymentService.CompleteCheckoutAsync(token ?? string.Empty, HttpContext.RequestAborted);
+
+            if (callback.IsSuccessful)
+            {
+                await PublishPaymentEvent("PaymentSucceeded", callback.Payment);
+                await PublishPaymentEvent("OrderPaymentUpdated", callback.Payment);
+                await PublishBillPaidEvents(callback.Payment);
+            }
+            else
+            {
+                await PublishPaymentEvent("PaymentFailed", callback.Payment);
+                await PublishPaymentEvent("OrderPaymentUpdated", callback.Payment);
+            }
+
+            return Redirect(BuildPaymentResultUrl(callback.IsSuccessful, callback.BillId));
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning(exception, "iyzico callback failed before redirecting to payment result.");
+            return Redirect(BuildPaymentResultUrl(false, null));
+        }
+    }
+
+    private async Task<string?> ReadIyzicoCallbackToken()
+    {
+        if (Request.HasFormContentType)
+        {
+            var form = await Request.ReadFormAsync(HttpContext.RequestAborted);
+            return form["token"].FirstOrDefault();
+        }
+
+        return Request.Query["token"].FirstOrDefault();
+    }
+
+    private IActionResult ToPaymentErrorResult(Exception exception)
+    {
+        if (exception is KeyNotFoundException ||
+            exception.Message == "Table not found." ||
+            exception.Message == "Bill not found.")
         {
             return NotFound(exception.Message);
         }
 
+        if (exception is UnauthorizedAccessException)
+        {
+            return Unauthorized(exception.Message);
+        }
+
         return BadRequest(exception.Message);
+    }
+
+    private static bool IsKnownPaymentException(Exception exception)
+    {
+        return exception is InvalidOperationException or UnauthorizedAccessException or KeyNotFoundException;
     }
 
     private async Task<Bill> GetOrCreateOpenBillForTable(int restaurantId, int tableId)
@@ -151,6 +342,7 @@ public class PaymentsController(AppDbContext dbContext, IHubContext<OrderHub> or
             .Where(order =>
                 order.TableId == tableId &&
                 order.RestaurantId == restaurantId &&
+                !order.IsPaid &&
                 order.Status != OrderStatus.Paid &&
                 order.Status != OrderStatus.Cancelled)
             .ToListAsync();
@@ -191,6 +383,8 @@ public class PaymentsController(AppDbContext dbContext, IHubContext<OrderHub> or
         var subTotal = await dbContext.OrderItems
             .Where(item =>
                 item.Order.BillId == billId &&
+                !item.Order.IsPaid &&
+                item.Order.Status != OrderStatus.Paid &&
                 item.Order.Status != OrderStatus.Cancelled)
             .SumAsync(item => item.UnitPrice * item.Quantity);
 
@@ -215,27 +409,47 @@ public class PaymentsController(AppDbContext dbContext, IHubContext<OrderHub> or
         }
 
         var orders = await dbContext.Orders
+            .Include(order => order.Items)
             .Where(order =>
                 order.BillId == bill.Id &&
                 order.RestaurantId == restaurantId &&
+                !order.IsPaid &&
                 order.Status != OrderStatus.Paid &&
                 order.Status != OrderStatus.Cancelled)
             .ToListAsync();
 
         var now = DateTime.UtcNow;
-        var payment = new Payment
-        {
-            Bill = bill,
-            Amount = bill.GrandTotal,
-            Method = paymentMethod.ToString(),
-            PaidAt = now
-        };
-
-        dbContext.Payments.Add(payment);
+        var provider = paymentMethod == PaymentMethod.Cash
+            ? PaymentProvider.Cash
+            : PaymentProvider.Pos;
+        var payments = new List<Payment>();
 
         foreach (var order in orders)
         {
+            var orderAmount = order.Items.Sum(item => item.UnitPrice * item.Quantity);
+            var payment = new Payment
+            {
+                OrderId = order.Id,
+                RestaurantId = order.RestaurantId,
+                TableId = order.TableId,
+                BillId = bill.Id,
+                Provider = provider,
+                Status = PaymentStatus.Paid,
+                Amount = orderAmount,
+                Currency = "TRY",
+                Method = paymentMethod.ToString(),
+                CreatedAt = now,
+                UpdatedAt = now,
+                PaidAt = now
+            };
+
+            dbContext.Payments.Add(payment);
+            payments.Add(payment);
+
             order.Status = OrderStatus.Paid;
+            order.IsPaid = true;
+            order.PaymentStatus = PaymentStatus.Paid;
+            order.PaymentProvider = provider;
             order.PaidAt ??= now;
         }
 
@@ -244,7 +458,7 @@ public class PaymentsController(AppDbContext dbContext, IHubContext<OrderHub> or
         bill.PaidAt = now;
         bill.ClosedAt = now;
 
-        return new PaymentResult(bill, bill.GrandTotal);
+        return new PaymentResult(bill, bill.GrandTotal, payments);
     }
 
     private async Task<object?> BuildReceipt(int billId, int? restaurantId = null, int? tableId = null)
@@ -255,6 +469,7 @@ public class PaymentsController(AppDbContext dbContext, IHubContext<OrderHub> or
             .Include(bill => bill.Table)
             .Include(bill => bill.Orders)
             .ThenInclude(order => order.Items)
+            .Include(bill => bill.Payments)
             .Where(bill => bill.Id == billId);
 
         if (restaurantId.HasValue)
@@ -307,7 +522,135 @@ public class PaymentsController(AppDbContext dbContext, IHubContext<OrderHub> or
             PaymentMethod = bill.PaymentMethod?.ToString(),
             bill.CreatedAt,
             bill.PaidAt,
-            Items = items
+            Items = items,
+            Payments = bill.Payments
+                .OrderByDescending(payment => payment.CreatedAt)
+                .Select(ToPaymentResponse)
+                .ToList()
+        };
+    }
+
+    private async Task PublishPaymentEvent(string eventName, Payment payment)
+    {
+        var payload = ToPaymentResponse(payment);
+        await orderHub.Clients.All.SendAsync(eventName, payload);
+        await orderHub.Clients.Group($"restaurant:{payment.RestaurantId}").SendAsync(eventName, payload);
+        await orderHub.Clients.Group($"restaurant:{payment.RestaurantId}:waiter").SendAsync(eventName, payload);
+        await orderHub.Clients.Group($"restaurant:{payment.RestaurantId}:restaurantadmin").SendAsync(eventName, payload);
+
+        if (payment.Order is not null)
+        {
+            var orderPayload = ToOrderPaymentPayload(payment.Order);
+            await orderHub.Clients.All.SendAsync("OrderUpdated", orderPayload);
+            await orderHub.Clients.Group($"restaurant:{payment.RestaurantId}").SendAsync("OrderUpdated", orderPayload);
+            await orderHub.Clients.Group($"restaurant:{payment.RestaurantId}:waiter").SendAsync("OrderUpdated", orderPayload);
+            await orderHub.Clients.Group($"restaurant:{payment.RestaurantId}:restaurantadmin").SendAsync("OrderUpdated", orderPayload);
+        }
+
+        await orderHub.Clients.Group($"restaurant:{payment.RestaurantId}:waiter").SendAsync("NotificationCreated", new
+        {
+            Type = eventName,
+            Title = payment.Status == PaymentStatus.Paid ? "Ödeme başarılı" : "Ödeme güncellendi",
+            Description = $"{payment.Amount} {payment.Currency} ödeme durumu {payment.Status}.",
+            payment.RestaurantId,
+            payment.TableId,
+            CreatedAt = payment.UpdatedAt
+        });
+    }
+
+    private async Task PublishBillPaidEvents(Payment payment)
+    {
+        if (payment.Bill is null)
+        {
+            return;
+        }
+
+        await orderHub.Clients.All.SendAsync("PaymentCompleted", new
+        {
+            Id = payment.Bill.Id,
+            payment.Bill.RestaurantId,
+            payment.Bill.TableId,
+            PaidAmount = payment.Amount,
+            PaidAt = payment.Bill.PaidAt,
+            Status = payment.Bill.Status.ToString()
+        });
+
+        foreach (var order in payment.Bill.Orders)
+        {
+            var orderPayload = ToOrderPaymentPayload(order);
+            await orderHub.Clients.All.SendAsync("OrderUpdated", orderPayload);
+            await orderHub.Clients.Group($"restaurant:{payment.RestaurantId}").SendAsync("OrderUpdated", orderPayload);
+            await orderHub.Clients.Group($"restaurant:{payment.RestaurantId}:waiter").SendAsync("OrderUpdated", orderPayload);
+            await orderHub.Clients.Group($"restaurant:{payment.RestaurantId}:restaurantadmin").SendAsync("OrderUpdated", orderPayload);
+        }
+    }
+
+    private string BuildPaymentResultUrl(bool isSuccessful, int? billId)
+    {
+        var frontendUrl = configuration["FRONTEND_URL"]?.TrimEnd('/');
+
+        if (string.IsNullOrWhiteSpace(frontendUrl))
+        {
+            frontendUrl = string.Empty;
+        }
+
+        var status = isSuccessful ? "success" : "failed";
+        var billQuery = billId.HasValue ? $"&billId={billId.Value}" : string.Empty;
+
+        return $"{frontendUrl}/payment-result?status={status}{billQuery}";
+    }
+
+    private static object ToPaymentResponse(Payment payment)
+    {
+        return new
+        {
+            PaymentId = payment.Id,
+            payment.Id,
+            payment.OrderId,
+            payment.RestaurantId,
+            payment.TableId,
+            Provider = payment.Provider.ToString(),
+            Status = payment.Status.ToString(),
+            payment.Amount,
+            payment.Currency,
+            payment.TransactionId,
+            payment.ProviderPaymentId,
+            payment.Token,
+            payment.PaymentUrl,
+            payment.ErrorMessage,
+            payment.CreatedAt,
+            payment.UpdatedAt,
+            payment.PaidAt
+        };
+    }
+
+    private static object ToOrderPaymentPayload(Order order)
+    {
+        return new
+        {
+            OrderId = order.Id,
+            order.Id,
+            order.RestaurantId,
+            order.OrderNumber,
+            order.TableId,
+            Status = order.Status.ToString(),
+            order.TotalAmount,
+            PaymentStatus = order.PaymentStatus == null ? null : order.PaymentStatus.ToString(),
+            PaymentProvider = order.PaymentProvider == null ? null : order.PaymentProvider.ToString(),
+            order.IsPaid,
+            order.PaidAt,
+            order.CreatedAt,
+            order.Note,
+            Items = order.Items.Select(item => new
+            {
+                item.Id,
+                item.ProductId,
+                item.ProductName,
+                item.Quantity,
+                item.UnitPrice,
+                item.Note,
+                item.RemovedIngredients
+            }).ToList()
         };
     }
 
@@ -316,6 +659,28 @@ public class PaymentsController(AppDbContext dbContext, IHubContext<OrderHub> or
         return Enum.TryParse<PaymentMethod>(method, ignoreCase: true, out var parsedMethod)
             ? parsedMethod
             : PaymentMethod.Card;
+    }
+
+    private static PaymentProvider ParsePaymentProvider(string? provider, PaymentProvider fallback)
+    {
+        return Enum.TryParse<PaymentProvider>(provider, ignoreCase: true, out var parsedProvider)
+            ? parsedProvider
+            : fallback;
+    }
+
+    private int? GetRestaurantScope(int? requestedRestaurantId)
+    {
+        if (User.Identity?.IsAuthenticated != true)
+        {
+            return null;
+        }
+
+        if (User.IsInRole(UserRole.SuperAdmin.ToString()))
+        {
+            return requestedRestaurantId;
+        }
+
+        return GetRestaurantIdFromClaim();
     }
 
     private int GetScopedRestaurantId(int? requestedRestaurantId)
@@ -340,6 +705,11 @@ public class PaymentsController(AppDbContext dbContext, IHubContext<OrderHub> or
             return requestedRestaurantId.Value;
         }
 
+        return GetRestaurantIdFromClaim();
+    }
+
+    private int GetRestaurantIdFromClaim()
+    {
         var claimValue = User.FindFirst("restaurantId")?.Value;
 
         if (!int.TryParse(claimValue, out var restaurantId))
@@ -350,9 +720,33 @@ public class PaymentsController(AppDbContext dbContext, IHubContext<OrderHub> or
         return restaurantId;
     }
 
-    public record CreatePaymentRequest(int RestaurantId, int TableId);
+    public record CreatePaymentRequest(
+        int? RestaurantId,
+        int? TableId,
+        int? OrderId,
+        string? Provider,
+        string? Currency,
+        string? TableSessionToken);
+
+    public record MockPaymentSuccessRequest(
+        int PaymentId,
+        int? RestaurantId,
+        string? TableSessionToken);
+
+    public record MockPaymentFailRequest(
+        int PaymentId,
+        string? ErrorMessage,
+        int? RestaurantId,
+        string? TableSessionToken);
+
+    public record MarkCashPaidRequest(
+        int OrderId,
+        string Provider,
+        int? RestaurantId);
 
     public record PayBillRequest(int RestaurantId, int TableId, string PaymentMethod);
 
-    private record PaymentResult(Bill Bill, decimal PaidAmount);
+    public record IyzicoCheckoutRequest(int BillId);
+
+    private record PaymentResult(Bill Bill, decimal PaidAmount, IReadOnlyList<Payment> Payments);
 }
