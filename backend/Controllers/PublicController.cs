@@ -17,9 +17,13 @@ public class PublicController(AppDbContext dbContext, IHubContext<OrderHub> orde
         [FromQuery] string restaurantSlug,
         [FromQuery] int tableNumber)
     {
+        var normalizedRestaurantSlug = restaurantSlug.Equals("demo", StringComparison.OrdinalIgnoreCase)
+            ? "demo-restaurant"
+            : restaurantSlug;
+
         var restaurant = await dbContext.Restaurants
             .AsNoTracking()
-            .FirstOrDefaultAsync(restaurant => restaurant.Slug == restaurantSlug);
+            .FirstOrDefaultAsync(restaurant => restaurant.Slug == normalizedRestaurantSlug);
 
         if (restaurant is null)
         {

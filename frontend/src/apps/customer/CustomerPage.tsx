@@ -398,6 +398,13 @@ export default function CustomerPage() {
         setCategories(menuResponse.data);
         setIsTableResolved(true);
       } catch {
+        if (restaurantSlug && tableNumber) {
+          setError("Masa menüsü yüklenemedi. Lütfen QR kodu tekrar okutun veya ekibe haber verin.");
+          setCategories([]);
+          setIsTableResolved(false);
+          return;
+        }
+
         const fallbackTable: ResolvedTable = {
           restaurantId: 1,
           tableId: 1,
