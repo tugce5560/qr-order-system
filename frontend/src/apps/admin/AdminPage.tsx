@@ -45,6 +45,7 @@ type Product = {
 
 type RestaurantTable = {
   id: number;
+  branchId?: number;
   tableNumber: number;
   qrCodeUrl: string;
   isActive: boolean;
@@ -154,6 +155,7 @@ type BillReceiptItem = {
 
 type OrderItem = {
   id: number;
+  productId?: number | null;
   productName: string;
   quantity: number;
   unitPrice: number;
@@ -167,12 +169,43 @@ type Order = {
   tableId: number;
   status: string;
   totalAmount: number;
+  source?: string | null;
+  externalPlatform?: string | null;
+  externalOrderId?: string | null;
+  externalStatus?: string | null;
+  externalCustomerName?: string | null;
+  externalCustomerPhone?: string | null;
+  externalDeliveryAddress?: string | null;
+  externalNote?: string | null;
   paymentStatus?: string | null;
   paymentProvider?: string | null;
   isPaid?: boolean;
   paidAt?: string | null;
   createdAt?: string;
   items: OrderItem[];
+};
+
+type ExternalOrder = {
+  id: number;
+  restaurantId: number;
+  branchId: number;
+  platform: string;
+  externalOrderId: string;
+  externalStatus: string;
+  internalOrderId?: number | null;
+  internalOrderNumber?: string | null;
+  customerName?: string | null;
+  customerPhone?: string | null;
+  deliveryAddress?: string | null;
+  totalAmount: number;
+  currency: string;
+  errorMessage?: string | null;
+  status: string;
+  createdAt?: string;
+  updatedAt?: string;
+  importedAt?: string | null;
+  rawPayloadJson?: string | null;
+  normalizedPayloadJson?: string | null;
 };
 
 type AdminServiceRequest = DemoServiceRequest;
@@ -186,6 +219,7 @@ type AdminSection =
   | "tables"
   | "gallery"
   | "bills"
+  | "external-orders"
   | "analytics"
   | "staff"
   | "settings";
@@ -216,6 +250,7 @@ const adminNavItems: { id: AdminSection; label: string; icon: string }[] = [
   { id: "gallery", label: "Görsel Galerisi", icon: "GL" },
   { id: "tables", label: "Masalar / QR Kodlar", icon: "QR" },
   { id: "bills", label: "Adisyonlar", icon: "AD" },
+  { id: "external-orders", label: "Harici Siparişler", icon: "EX" },
   { id: "analytics", label: "Analytics & Raporlar", icon: "AN" },
   { id: "staff", label: "Personel", icon: "PS" },
   { id: "settings", label: "Ayarlar", icon: "AY" },
@@ -505,6 +540,21 @@ function formatDateTime(value?: string | null) {
   }).format(new Date(value));
 }
 
+function getOrderSourceLabel(order: Pick<Order, "source" | "externalPlatform">) {
+  const source = order.externalPlatform || order.source || "QR";
+
+  if (source === "TrendyolGo") return "Trendyol Go";
+  if (source === "GetirYemek") return "GetirYemek";
+  if (source === "Yemeksepeti") return "Yemeksepeti";
+  if (source === "Manual") return "Manuel";
+
+  return "QR";
+}
+
+function getSourceClassName(source?: string | null) {
+  return `source-${(source || "qr").toLowerCase()}`;
+}
+
 function getMonthLabel(month: number) {
   return new Intl.DateTimeFormat("tr-TR", { month: "short" }).format(
     new Date(Date.UTC(2026, month - 1, 1)),
@@ -568,6 +618,9 @@ function AdminPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [tables, setTables] = useState<RestaurantTable[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [externalOrders, setExternalOrders] = useState<ExternalOrder[]>([]);
+  const [externalPlatformFilter, setExternalPlatformFilter] = useState("");
+  const [externalStatusFilter, setExternalStatusFilter] = useState("");
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
   const [categoryName, setCategoryName] = useState("");
@@ -613,6 +666,7 @@ function AdminPage() {
         restaurantRes,
         analyticsRes,
         ordersRes,
+        externalOrdersRes,
       ] = await Promise.all([
         api.get<Category[]>("/admin/categories"),
         api.get<Product[]>("/admin/products"),
@@ -620,6 +674,7 @@ function AdminPage() {
         api.get<Restaurant>("/admin/restaurant"),
         api.get<AnalyticsSummary>("/analytics/summary"),
         api.get<Order[]>("/orders"),
+        api.get<ExternalOrder[]>("/external-orders"),
       ]);
 
       setCategories(categoriesRes.data);
@@ -628,6 +683,7 @@ function AdminPage() {
       setRestaurant(restaurantRes.data);
       setAnalytics(analyticsRes.data);
       setOrders(mergeAdminOrdersWithDemo(ordersRes.data));
+      setExternalOrders(externalOrdersRes.data);
 
       if (categoriesRes.data.length > 0) {
         setProductForm((currentForm) => ({
@@ -641,6 +697,7 @@ function AdminPage() {
       setProducts(demoAdminProducts);
       setTables(demoAdminTables);
       setOrders(mergeAdminOrdersWithDemo(demoAdminOrders));
+      setExternalOrders([]);
       setRestaurant(demoAdminRestaurant);
       setAnalytics(demoAdminAnalytics);
       setProductForm((currentForm) => ({
@@ -662,6 +719,14 @@ function AdminPage() {
       paymentStatus: orderEvent.paymentStatus,
       paymentProvider: orderEvent.paymentProvider,
       isPaid: orderEvent.isPaid,
+      source: orderEvent.source,
+      externalPlatform: orderEvent.externalPlatform,
+      externalOrderId: orderEvent.externalOrderId,
+      externalStatus: orderEvent.externalStatus,
+      externalCustomerName: orderEvent.externalCustomerName,
+      externalCustomerPhone: orderEvent.externalCustomerPhone,
+      externalDeliveryAddress: orderEvent.externalDeliveryAddress,
+      externalNote: orderEvent.externalNote,
       paidAt: orderEvent.paidAt,
       createdAt: orderEvent.createdAt,
       items: orderEvent.items ?? [],
@@ -680,6 +745,67 @@ function AdminPage() {
         order.id === realtimeOrder.id ? realtimeOrder : order,
       );
     });
+  }
+
+  async function reloadExternalOrders() {
+    const params = new URLSearchParams();
+    if (externalPlatformFilter) params.set("platform", externalPlatformFilter);
+    if (externalStatusFilter) params.set("status", externalStatusFilter);
+
+    const response = await api.get<ExternalOrder[]>(
+      `/external-orders${params.toString() ? `?${params.toString()}` : ""}`,
+    );
+    setExternalOrders(response.data);
+  }
+
+  async function createMockExternalOrder(platform: string) {
+    try {
+      setNotice(null);
+      setError(null);
+      const firstTable = tables[0];
+      const branchId = firstTable?.branchId;
+
+      if (!restaurant?.id || !branchId) {
+        throw new Error("Restoran veya şube bilgisi bulunamadı.");
+      }
+
+      const response = await api.post<ExternalOrder>("/external-orders/mock", {
+        restaurantId: restaurant.id,
+        branchId,
+        platform,
+        externalOrderId: `${platform.toUpperCase()}-TEST-${Date.now()}`,
+        customerName: "Test Müşteri",
+        customerPhone: "05555555555",
+        deliveryAddress: "Test Mahallesi Test Sokak No:1",
+        items: [
+          { name: "Hamburger", quantity: 2, unitPrice: 150 },
+          { name: "Ayran", quantity: 1, unitPrice: 30 },
+        ],
+        totalAmount: 330,
+        note: "Soğan olmasın",
+      });
+
+      setExternalOrders((currentOrders) => [response.data, ...currentOrders]);
+      await loadAdminData();
+      setNotice(`${platform} test siparişi oluşturuldu.`);
+    } catch (mockError) {
+      setError(
+        mockError instanceof Error
+          ? mockError.message
+          : "Test harici sipariş oluşturulamadı.",
+      );
+    }
+  }
+
+  async function retryExternalOrder(id: number) {
+    await api.post(`/external-orders/${id}/retry`);
+    await reloadExternalOrders();
+    await loadAdminData();
+  }
+
+  async function cancelExternalOrder(id: number) {
+    await api.post(`/external-orders/${id}/cancel`);
+    await reloadExternalOrders();
   }
 
   function mergeServiceRequest(request: AdminServiceRequest) {
@@ -1241,6 +1367,23 @@ function AdminPage() {
           </section>
         )}
 
+        {!isLoading && currentSection === "external-orders" && (
+          <section className="admin-section">
+            <SectionHeading eyebrow="Entegrasyonlar" title="Harici Siparişler" />
+            <ExternalOrdersPanel
+              externalOrders={externalOrders}
+              platformFilter={externalPlatformFilter}
+              statusFilter={externalStatusFilter}
+              onPlatformFilterChange={setExternalPlatformFilter}
+              onStatusFilterChange={setExternalStatusFilter}
+              onRefresh={reloadExternalOrders}
+              onCreateMock={createMockExternalOrder}
+              onRetry={retryExternalOrder}
+              onCancel={cancelExternalOrder}
+            />
+          </section>
+        )}
+
         {!isLoading && currentSection === "analytics" && (
           <section className="admin-section">
             <SectionHeading eyebrow="Performans & Analiz" title="Analytics & Raporlar" />
@@ -1446,6 +1589,9 @@ function OrdersPanel({
           {orders.map((order) => (
             <article key={order.id}>
               <span>Masa {getTableNumberFromOrder(order, tables)}</span>
+              <em className={`source-badge ${getSourceClassName(order.externalPlatform || order.source)}`}>
+                {getOrderSourceLabel(order)}
+              </em>
               <strong>{order.status}</strong>
               <em className={`admin-payment-badge payment-${(order.paymentStatus ?? (order.isPaid ? "Paid" : "Pending")).toLowerCase()}`}>
                 {order.isPaid || order.paymentStatus === "Paid"
@@ -1459,6 +1605,138 @@ function OrdersPanel({
               <button type="button" onClick={() => onSelectOrder(order)}>
                 Detay
               </button>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ExternalOrdersPanel({
+  externalOrders,
+  platformFilter,
+  statusFilter,
+  onPlatformFilterChange,
+  onStatusFilterChange,
+  onRefresh,
+  onCreateMock,
+  onRetry,
+  onCancel,
+}: {
+  externalOrders: ExternalOrder[];
+  platformFilter: string;
+  statusFilter: string;
+  onPlatformFilterChange: (value: string) => void;
+  onStatusFilterChange: (value: string) => void;
+  onRefresh: () => void;
+  onCreateMock: (platform: string) => void;
+  onRetry: (id: number) => void;
+  onCancel: (id: number) => void;
+}) {
+  return (
+    <section className="admin-panel external-orders-panel">
+      <div className="external-orders-toolbar">
+        <label>
+          <span>Platform</span>
+          <select
+            value={platformFilter}
+            onChange={(event) => onPlatformFilterChange(event.target.value)}
+          >
+            <option value="">Tümü</option>
+            <option value="GetirYemek">GetirYemek</option>
+            <option value="Yemeksepeti">Yemeksepeti</option>
+            <option value="TrendyolGo">Trendyol Go</option>
+          </select>
+        </label>
+        <label>
+          <span>Status</span>
+          <select
+            value={statusFilter}
+            onChange={(event) => onStatusFilterChange(event.target.value)}
+          >
+            <option value="">Tümü</option>
+            <option value="Received">Received</option>
+            <option value="Normalized">Normalized</option>
+            <option value="Imported">Imported</option>
+            <option value="Failed">Failed</option>
+            <option value="Cancelled">Cancelled</option>
+          </select>
+        </label>
+        <button type="button" onClick={onRefresh}>
+          Filtrele
+        </button>
+      </div>
+
+      <div className="external-mock-actions">
+        <button type="button" onClick={() => onCreateMock("GetirYemek")}>
+          Test Getir Siparişi Oluştur
+        </button>
+        <button type="button" onClick={() => onCreateMock("Yemeksepeti")}>
+          Test Yemeksepeti Siparişi Oluştur
+        </button>
+        <button type="button" onClick={() => onCreateMock("TrendyolGo")}>
+          Test Trendyol Siparişi Oluştur
+        </button>
+      </div>
+
+      {externalOrders.length === 0 ? (
+        <EmptyState text="Henüz harici sipariş yok." />
+      ) : (
+        <div className="external-order-list">
+          {externalOrders.map((externalOrder) => (
+            <article key={externalOrder.id} className="external-order-card">
+              <header>
+                <span className={`source-badge ${getSourceClassName(externalOrder.platform)}`}>
+                  {getOrderSourceLabel({
+                    source: externalOrder.platform,
+                    externalPlatform: externalOrder.platform,
+                  })}
+                </span>
+                <strong>{externalOrder.externalOrderId}</strong>
+                <em>{externalOrder.status}</em>
+              </header>
+              <dl>
+                <div>
+                  <dt>Müşteri</dt>
+                  <dd>{externalOrder.customerName ?? "-"}</dd>
+                </div>
+                <div>
+                  <dt>Telefon</dt>
+                  <dd>{externalOrder.customerPhone ?? "-"}</dd>
+                </div>
+                <div>
+                  <dt>Adres</dt>
+                  <dd>{externalOrder.deliveryAddress ?? "-"}</dd>
+                </div>
+                <div>
+                  <dt>Toplam</dt>
+                  <dd>{formatCurrency(externalOrder.totalAmount)}</dd>
+                </div>
+                <div>
+                  <dt>İç sipariş</dt>
+                  <dd>{externalOrder.internalOrderNumber ?? externalOrder.internalOrderId ?? "-"}</dd>
+                </div>
+                <div>
+                  <dt>Platform status</dt>
+                  <dd>{externalOrder.externalStatus}</dd>
+                </div>
+              </dl>
+              {externalOrder.errorMessage && (
+                <p className="external-order-error">{externalOrder.errorMessage}</p>
+              )}
+              <details>
+                <summary>Raw payload</summary>
+                <pre>{externalOrder.rawPayloadJson ?? "Detay için kaydı açın."}</pre>
+              </details>
+              <footer>
+                <button type="button" onClick={() => onRetry(externalOrder.id)}>
+                  Retry Import
+                </button>
+                <button type="button" onClick={() => onCancel(externalOrder.id)}>
+                  Cancel
+                </button>
+              </footer>
             </article>
           ))}
         </div>
@@ -2253,6 +2531,10 @@ function OrderDetailModal({
         </header>
         <dl>
           <div>
+            <dt>Kaynak</dt>
+            <dd>{getOrderSourceLabel(order)}</dd>
+          </div>
+          <div>
             <dt>Durum</dt>
             <dd>{order.status}</dd>
           </div>
@@ -2278,6 +2560,26 @@ function OrderDetailModal({
             <dt>Saat</dt>
             <dd>{formatTime(order.createdAt)}</dd>
           </div>
+          {order.externalOrderId && (
+            <>
+              <div>
+                <dt>Platform No</dt>
+                <dd>{order.externalOrderId}</dd>
+              </div>
+              <div>
+                <dt>Müşteri</dt>
+                <dd>{order.externalCustomerName ?? "-"}</dd>
+              </div>
+              <div>
+                <dt>Telefon</dt>
+                <dd>{order.externalCustomerPhone ?? "-"}</dd>
+              </div>
+              <div>
+                <dt>Adres</dt>
+                <dd>{order.externalDeliveryAddress ?? "-"}</dd>
+              </div>
+            </>
+          )}
         </dl>
         <ul>
           {order.items.map((item) => (

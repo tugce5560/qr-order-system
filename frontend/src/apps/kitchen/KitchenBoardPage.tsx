@@ -29,6 +29,12 @@ type Order = {
   tableId: number;
   status: string;
   totalAmount: number;
+  source?: string | null;
+  externalPlatform?: string | null;
+  externalOrderId?: string | null;
+  externalCustomerName?: string | null;
+  externalDeliveryAddress?: string | null;
+  externalNote?: string | null;
   createdAt?: string;
   items: OrderItem[];
 };
@@ -166,6 +172,16 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
+function getOrderSourceLabel(order: Pick<Order, "source" | "externalPlatform">) {
+  const source = order.externalPlatform || order.source || "QR";
+
+  if (source === "TrendyolGo") return "Trendyol Go";
+  if (source === "GetirYemek") return "GetirYemek";
+  if (source === "Yemeksepeti") return "Yemeksepeti";
+
+  return "QR";
+}
+
 export default function KitchenBoardPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [activeFilter, setActiveFilter] = useState<KitchenStatus>("New");
@@ -265,6 +281,12 @@ export default function KitchenBoardPage() {
       tableId: orderEvent.tableId,
       status: orderEvent.status,
       totalAmount: orderEvent.totalAmount,
+      source: orderEvent.source,
+      externalPlatform: orderEvent.externalPlatform,
+      externalOrderId: orderEvent.externalOrderId,
+      externalCustomerName: orderEvent.externalCustomerName,
+      externalDeliveryAddress: orderEvent.externalDeliveryAddress,
+      externalNote: orderEvent.externalNote,
       createdAt: orderEvent.createdAt,
       items: orderEvent.items ?? [],
     };
@@ -518,6 +540,9 @@ export default function KitchenBoardPage() {
                     <span className="kitchen-table-chip">
                       Masa {getTableNumber(order)}
                     </span>
+                    <span className="kitchen-source-chip">
+                      {getOrderSourceLabel(order)}
+                    </span>
                     <h3>{order.orderNumber}</h3>
                   </div>
                   <span className="kitchen-status-chip">
@@ -538,7 +563,20 @@ export default function KitchenBoardPage() {
                     <dt>Ürün adedi</dt>
                     <dd>{getItemCount(order)}</dd>
                   </div>
+                  {order.externalCustomerName && (
+                    <div>
+                      <dt>Müşteri</dt>
+                      <dd>{order.externalCustomerName}</dd>
+                    </div>
+                  )}
                 </dl>
+
+                {order.externalDeliveryAddress && (
+                  <p className="kitchen-external-note">{order.externalDeliveryAddress}</p>
+                )}
+                {order.externalNote && (
+                  <p className="kitchen-external-note">{order.externalNote}</p>
+                )}
 
                 <ul className="kitchen-order-items">
                   {order.items.map((item) => (

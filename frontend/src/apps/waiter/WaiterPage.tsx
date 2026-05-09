@@ -37,7 +37,7 @@ type WaiterTable = {
 
 type WaiterOrderItem = {
   id: number;
-  productId: number;
+  productId?: number | null;
   productName: string;
   quantity: number;
   unitPrice: number;
@@ -51,6 +51,13 @@ type WaiterOrder = {
   tableId: number;
   status: OrderStatus;
   totalAmount: number;
+  source?: string | null;
+  externalPlatform?: string | null;
+  externalOrderId?: string | null;
+  externalCustomerName?: string | null;
+  externalCustomerPhone?: string | null;
+  externalDeliveryAddress?: string | null;
+  externalNote?: string | null;
   paymentStatus?: string | null;
   paymentProvider?: string | null;
   isPaid?: boolean;
@@ -235,6 +242,16 @@ function mergeProductsWithDemo(products: Product[]) {
   );
 }
 
+function getOrderSourceLabel(order: Pick<WaiterOrder, "source" | "externalPlatform">) {
+  const source = order.externalPlatform || order.source || "QR";
+
+  if (source === "TrendyolGo") return "Trendyol Go";
+  if (source === "GetirYemek") return "GetirYemek";
+  if (source === "Yemeksepeti") return "Yemeksepeti";
+
+  return "QR";
+}
+
 type EditOrderItem = {
   productId: number;
   quantity: number;
@@ -328,6 +345,13 @@ function WaiterPage() {
       tableId: orderEvent.tableId,
       status: orderEvent.status as OrderStatus,
       totalAmount: orderEvent.totalAmount,
+      source: orderEvent.source,
+      externalPlatform: orderEvent.externalPlatform,
+      externalOrderId: orderEvent.externalOrderId,
+      externalCustomerName: orderEvent.externalCustomerName,
+      externalCustomerPhone: orderEvent.externalCustomerPhone,
+      externalDeliveryAddress: orderEvent.externalDeliveryAddress,
+      externalNote: orderEvent.externalNote,
       paymentStatus: orderEvent.paymentStatus,
       paymentProvider: orderEvent.paymentProvider,
       isPaid: orderEvent.isPaid,
@@ -516,12 +540,16 @@ function WaiterPage() {
 
   function openEditModal(order: WaiterOrder) {
     setEditingOrder(order);
-    setEditItems(order.items.map(item => ({
-      productId: item.productId,
-      quantity: item.quantity,
-      note: item.note || "",
-      removedIngredients: item.removedIngredients || "",
-    })));
+    setEditItems(
+      order.items
+        .filter((item) => item.productId !== null && item.productId !== undefined)
+        .map((item) => ({
+          productId: item.productId as number,
+          quantity: item.quantity,
+          note: item.note || "",
+          removedIngredients: item.removedIngredients || "",
+        })),
+    );
     setEditOrderNote(order.note || "");
     setIsEditModalOpen(true);
   }
@@ -966,6 +994,9 @@ function WaiterPage() {
                           <div>
                             <span>Masa {getTableNumber(order)}</span>
                             <h3>{order.orderNumber}</h3>
+                            <small className="waiter-source-badge">
+                              {getOrderSourceLabel(order)}
+                            </small>
                           </div>
                           <div className="waiter-order-badges">
                             <span className={`table-status-badge status-${order.status.toLowerCase()}`}>
@@ -987,6 +1018,14 @@ function WaiterPage() {
                           <span>{formatOrderTime(order.createdAt)}</span>
                           <strong>{formatCurrency(order.totalAmount)}</strong>
                         </div>
+                        {order.externalCustomerName && (
+                          <p className="waiter-external-meta">
+                            {order.externalCustomerName} · {order.externalCustomerPhone ?? "Telefon yok"}
+                          </p>
+                        )}
+                        {order.externalDeliveryAddress && (
+                          <p className="waiter-external-meta">{order.externalDeliveryAddress}</p>
+                        )}
 
                         <ul>
                           {order.items.map((item) => (

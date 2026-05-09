@@ -5,6 +5,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using QrOrderSystem.Api.Data;
 using QrOrderSystem.Api.Hubs;
+using QrOrderSystem.Api.Services.ExternalOrders;
 using QrOrderSystem.Api.Services.Payments;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -26,6 +27,11 @@ builder.Services.AddControllers();
 builder.Services.AddSignalR();
 builder.Services.AddScoped<IPaymentService, MockPaymentService>();
 builder.Services.AddScoped<IIyzicoPaymentService, IyzicoPaymentService>();
+builder.Services.AddScoped<IExternalOrderImportService, ExternalOrderImportService>();
+builder.Services.AddScoped<IExternalOrderAdapter, MockExternalOrderAdapter>();
+builder.Services.AddScoped<IExternalOrderAdapter, TrendyolGoOrderAdapter>();
+builder.Services.AddScoped<IExternalOrderAdapter, YemeksepetiOrderAdapter>();
+builder.Services.AddScoped<IExternalOrderAdapter, GetirYemekOrderAdapter>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {

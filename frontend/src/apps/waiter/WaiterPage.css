@@ -1614,6 +1614,27 @@
   color: #111827;
 }
 
+.waiter-source-badge {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 6px;
+  border: 1px solid rgba(45, 212, 191, 0.3);
+  border-radius: 999px;
+  background: rgba(45, 212, 191, 0.13);
+  color: #99f6e4;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.waiter-external-meta {
+  border: 1px solid rgba(226, 232, 240, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #e2e8f0;
+  padding: 10px;
+}
+
 .waiter-status-tabs button {
   color: #f8fafc;
 }

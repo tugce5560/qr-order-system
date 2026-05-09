@@ -1830,3 +1830,117 @@
   border-radius: 12px;
   padding: 10px;
 }
+
+.source-badge,
+.waiter-source-badge,
+.kitchen-source-chip {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  border: 1px solid rgba(45, 212, 191, 0.3);
+  border-radius: 999px;
+  background: rgba(45, 212, 191, 0.13);
+  color: #99f6e4;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.source-trendyolgo {
+  border-color: rgba(249, 115, 22, 0.35);
+  background: rgba(249, 115, 22, 0.14);
+  color: #fed7aa;
+}
+
+.source-getiryemek {
+  border-color: rgba(168, 85, 247, 0.35);
+  background: rgba(168, 85, 247, 0.14);
+  color: #ddd6fe;
+}
+
+.source-yemeksepeti {
+  border-color: rgba(244, 63, 94, 0.35);
+  background: rgba(244, 63, 94, 0.14);
+  color: #fecdd3;
+}
+
+.external-orders-toolbar,
+.external-mock-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.external-orders-toolbar label {
+  display: grid;
+  gap: 6px;
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.external-orders-toolbar select,
+.external-orders-toolbar button,
+.external-mock-actions button,
+.external-order-card footer button {
+  border: 1px solid rgba(226, 232, 240, 0.14);
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #f8fafc;
+  padding: 10px 12px;
+  font-weight: 900;
+}
+
+.external-mock-actions button {
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
+  color: #ecfeff;
+}
+
+.external-order-list {
+  display: grid;
+  gap: 14px;
+}
+
+.external-order-card {
+  border: 1px solid rgba(226, 232, 240, 0.12);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.72);
+  padding: 14px;
+}
+
+.external-order-card header,
+.external-order-card footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.external-order-card dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.external-order-card dt {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.external-order-card dd,
+.external-order-card strong {
+  color: #f8fafc;
+}
+
+.external-order-card pre {
+  max-height: 180px;
+  overflow: auto;
+  white-space: pre-wrap;
+  color: #cbd5e1;
+}
+
+.external-order-error {
+  color: #fecaca;
+}

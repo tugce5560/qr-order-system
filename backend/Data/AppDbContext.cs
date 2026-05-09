@@ -19,6 +19,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<TableSession> TableSessions => Set<TableSession>();
     public DbSet<WaiterCall> WaiterCalls => Set<WaiterCall>();
     public DbSet<OrderActivityLog> OrderActivityLogs => Set<OrderActivityLog>();
+    public DbSet<ExternalOrder> ExternalOrders => Set<ExternalOrder>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -134,6 +135,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(o => o.PaymentProvider).HasConversion<string>().HasMaxLength(30);
             entity.Property(o => o.IsPaid).HasDefaultValue(false);
             entity.Property(o => o.TotalAmount).HasPrecision(18, 2);
+            entity.Property(o => o.ExternalPlatform).HasMaxLength(40);
+            entity.Property(o => o.ExternalOrderId).HasMaxLength(120);
+            entity.Property(o => o.ExternalRawOrderId).HasMaxLength(120);
+            entity.Property(o => o.ExternalStatus).HasMaxLength(80);
+            entity.Property(o => o.ExternalCustomerName).HasMaxLength(200);
+            entity.Property(o => o.ExternalCustomerPhone).HasMaxLength(60);
+            entity.Property(o => o.ExternalDeliveryAddress).HasMaxLength(1000);
+            entity.Property(o => o.ExternalNote).HasMaxLength(1000);
 
             entity.HasOne(o => o.Restaurant)
                 .WithMany(r => r.Orders)
@@ -171,7 +180,58 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.HasOne(i => i.Product)
                 .WithMany(p => p.OrderItems)
                 .HasForeignKey(i => i.ProductId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<ExternalOrder>(entity =>
+        {
+            entity.HasIndex(externalOrder => new
+            {
+                externalOrder.RestaurantId,
+                externalOrder.Platform,
+                externalOrder.ExternalOrderId
+            }).IsUnique();
+
+            entity.Property(externalOrder => externalOrder.Platform)
+                .HasConversion<string>()
+                .HasMaxLength(40)
+                .IsRequired();
+            entity.Property(externalOrder => externalOrder.ExternalOrderId)
+                .HasMaxLength(120)
+                .IsRequired();
+            entity.Property(externalOrder => externalOrder.ExternalStatus)
+                .HasMaxLength(80)
+                .IsRequired();
+            entity.Property(externalOrder => externalOrder.RawPayloadJson)
+                .HasColumnType("jsonb")
+                .IsRequired();
+            entity.Property(externalOrder => externalOrder.NormalizedPayloadJson)
+                .HasColumnType("jsonb");
+            entity.Property(externalOrder => externalOrder.CustomerName).HasMaxLength(200);
+            entity.Property(externalOrder => externalOrder.CustomerPhone).HasMaxLength(60);
+            entity.Property(externalOrder => externalOrder.DeliveryAddress).HasMaxLength(1000);
+            entity.Property(externalOrder => externalOrder.TotalAmount).HasPrecision(18, 2);
+            entity.Property(externalOrder => externalOrder.Currency).HasMaxLength(3).HasDefaultValue("TRY").IsRequired();
+            entity.Property(externalOrder => externalOrder.ErrorMessage).HasMaxLength(1000);
+            entity.Property(externalOrder => externalOrder.Status)
+                .HasConversion<string>()
+                .HasMaxLength(30)
+                .IsRequired();
+
+            entity.HasOne(externalOrder => externalOrder.Restaurant)
+                .WithMany()
+                .HasForeignKey(externalOrder => externalOrder.RestaurantId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(externalOrder => externalOrder.Branch)
+                .WithMany()
+                .HasForeignKey(externalOrder => externalOrder.BranchId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(externalOrder => externalOrder.InternalOrder)
+                .WithMany()
+                .HasForeignKey(externalOrder => externalOrder.InternalOrderId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<Bill>(entity =>

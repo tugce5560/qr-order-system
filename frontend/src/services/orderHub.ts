@@ -13,6 +13,14 @@ export type OrderEventPayload = {
   tableNumber?: number;
   status: string;
   totalAmount: number;
+  source?: string | null;
+  externalPlatform?: string | null;
+  externalOrderId?: string | null;
+  externalStatus?: string | null;
+  externalCustomerName?: string | null;
+  externalCustomerPhone?: string | null;
+  externalDeliveryAddress?: string | null;
+  externalNote?: string | null;
   paymentStatus?: string | null;
   paymentProvider?: string | null;
   isPaid?: boolean;
@@ -23,7 +31,7 @@ export type OrderEventPayload = {
   message?: string | null;
   items: {
     id: number;
-    productId: number;
+    productId?: number | null;
     productName: string;
     quantity: number;
     unitPrice: number;

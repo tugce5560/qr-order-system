@@ -16,6 +16,14 @@ public class Order
     public PaymentStatus? PaymentStatus { get; set; }
     public PaymentProvider? PaymentProvider { get; set; }
     public bool IsPaid { get; set; }
+    public string? ExternalPlatform { get; set; }
+    public string? ExternalOrderId { get; set; }
+    public string? ExternalRawOrderId { get; set; }
+    public string? ExternalStatus { get; set; }
+    public string? ExternalCustomerName { get; set; }
+    public string? ExternalCustomerPhone { get; set; }
+    public string? ExternalDeliveryAddress { get; set; }
+    public string? ExternalNote { get; set; }
     public string? Note { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? PreparingAt { get; set; }

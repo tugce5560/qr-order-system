@@ -271,7 +271,7 @@ public class AnalyticsController(AppDbContext dbContext) : ControllerBase
             .GroupBy(item => new { item.ProductId, item.ProductName })
             .Select(group => new TopProductRow
             {
-                ProductId = group.Key.ProductId,
+                ProductId = group.Key.ProductId ?? 0,
                 ProductName = group.Key.ProductName,
                 QuantitySold = group.Sum(item => item.Quantity),
                 Revenue = group.Sum(item => item.UnitPrice * item.Quantity)
