@@ -1110,11 +1110,26 @@ export default function CustomerPage() {
       setCustomerNotice(getOrderPaymentNotice(paymentOption, nextPayment !== null));
       setCartItems([]);
       setIsCartOpen(false);
-    } catch {
-      // API çağrısı başarısız olursa demo siparişi tut
+    } catch (orderError) {
+      const responseMessage = axios.isAxiosError(orderError)
+        ? orderError.response?.data
+        : null;
+      const fallbackMessage =
+        paymentOption === "Iyzico"
+          ? "Online ödeme başlatılamadı. Lütfen tekrar deneyin veya ekibe haber verin."
+          : "Siparişiniz mutfağa iletildi. Garson panelinde de görünecek.";
+
+      if (paymentOption === "Iyzico") {
+        setPaymentError(
+          typeof responseMessage === "string" && responseMessage.trim()
+            ? responseMessage
+            : fallbackMessage,
+        );
+      }
+
       setCustomerNotice({
-        tone: "success",
-        message: "Siparişiniz mutfağa iletildi. Garson panelinde de görünecek.",
+        tone: paymentOption === "Iyzico" ? "error" : "success",
+        message: fallbackMessage,
       });
       setCartItems([]);
       setIsCartOpen(false);
