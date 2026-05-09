@@ -377,10 +377,21 @@ function mergeAdminOrdersWithDemo(orders: Order[]) {
   const demoOrders = getDemoOrders().map(demoOrderToAdminOrder);
   const orderIds = new Set(demoOrders.map((order) => order.id));
 
-  return [
+  return sortOrdersNewestFirst([
     ...demoOrders,
     ...orders.filter((order) => !orderIds.has(order.id)),
-  ];
+  ]);
+}
+
+function sortOrdersNewestFirst(orders: Order[]) {
+  return [...orders].sort(
+    (firstOrder, secondOrder) =>
+      getOrderTimestamp(secondOrder) - getOrderTimestamp(firstOrder),
+  );
+}
+
+function getOrderTimestamp(order: Order) {
+  return order.createdAt ? new Date(order.createdAt).getTime() : 0;
 }
 
 function serviceRequestToAdminRequest(
