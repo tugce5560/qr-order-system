@@ -331,7 +331,7 @@ public class IyzicoPaymentService(
             Id = $"table-{bill.TableId}",
             Name = "QR",
             Surname = "Customer",
-            Email = "customer@qrorder.local",
+            Email = "customer@qrorder.com",
             IdentityNumber = "11111111111",
             RegistrationAddress = BuildAddressDescription(bill),
             City = "Istanbul",
