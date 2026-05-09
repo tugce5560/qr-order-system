@@ -1610,8 +1610,16 @@ function OrdersPanel({
       ) : (
         <div className="admin-data-table admin-orders-table">
           {orders.map((order) => (
-            <article key={order.id}>
-              <span>Masa {getTableNumberFromOrder(order, tables)}</span>
+            <article
+              key={order.id}
+              className={order.externalPlatform || order.externalOrderId ? "admin-external-order-row" : undefined}
+            >
+              <div className="admin-order-identity">
+                <strong>{order.orderNumber}</strong>
+                <span>Masa {getTableNumberFromOrder(order, tables)}</span>
+                {order.externalCustomerName && <small>{order.externalCustomerName}</small>}
+                {order.externalOrderId && <small>{order.externalOrderId}</small>}
+              </div>
               <em className={`source-badge ${getSourceClassName(order.externalPlatform || order.source)}`}>
                 {getOrderSourceLabel(order)}
               </em>
